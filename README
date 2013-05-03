@@ -1,8 +1,11 @@
 Eiger Performance Modeling Framework
 
-Andrew Kerr <arkerr@gatech.edu>
-Eric Anger	<eanger@gatech.edu>
-July 5, 2011
+
+=============
+OVERVIEW
+=============
+This document gives a brief overview into the stucture and installation of the Eiger 
+performance modeling framework. More details can be found in the documentation folder.
 
 =============
 FOLDER LAYOUT
@@ -11,10 +14,10 @@ FOLDER LAYOUT
 ./database		- MySQL schema for Eiger database
 ./documentation - Documentation describing the implementation of Eiger
 ./eiger			- Eiger performance modeling framework
+./elwperf		- Sandia's Fortran and C/C++ macro interface for common profiling tasks
 ./examples		- Examples of basic modeling functionality
 ./ocelot-trace	- GPU Ocelot trace generators with Eiger interface
-./tests         - Test datasets
-./elwperf	- Sandia's Fortran and C/C++ macro interface for common profiling tasks
+./tests         - Simple tests ensuring correct installation of Eiger 
 
 
 Please review the requirements specification in the ./documentation folder for all
@@ -93,9 +96,9 @@ For help, enter:
 scons -h
 
 =============
-TESTING
+EXAMPLE DATA
 =============
-Several sets of test data reside in the ./tests subdirectory. This data was used 
+Several sets of example data reside in the ./examples subdirectory. This data was used 
 for different publications and may or may not retain their functionality as Eiger
 is developed.
 
