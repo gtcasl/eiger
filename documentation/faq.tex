@@ -1,0 +1,75 @@
+\section{Frequently Asked Questions}
+\label{sec:faq}
+Frequently used functionality, errors, and questions.
+\paragraph{Question}
+How do I install the model generation tools?
+\paragraph{Answer}
+All the modeling
+and visualization tools are written in Python. See the README in the Eiger
+root directory for more information on installing. 
+
+\paragraph{Question}
+How do I generate a model?
+\paragraph{Answer}
+All model generation, visualization, and serialization tasks are
+performed through the \texttt{Eiger.py} script. Model generation tasks require
+the DataCollection ID of the data within the Eiger database used to train
+the model. As well there are many flags that can be set to specify
+settings and procedures for building a model, experimenting on that model,
+performing analyses, and visualizing results. 
+
+This command will generate a model and do nothing else:
+
+	\begin{quote}
+	\texttt{Eiger.py -t <Training DataCollection ID>}
+	\end{quote}
+
+You can then specify a DataCollection to test the model against:
+
+	\begin{quote}
+	\texttt{Eiger.py -t <Training DataCollection ID> -e <Experiment DataCollection ID>}
+	\end{quote}
+
+A full listing of flags and their functions can be found by running the
+following command:
+
+	\begin{quote}
+	\texttt{Eiger.py -h}
+	\end{quote}
+
+\paragraph{Question}
+How do I visualize the performance or structure of my models?
+\paragraph{Answer}
+There are many analysis and visualization tools built into the
+\texttt{Eiger.py} script.
+
+To draw the scree graph illustrating the distribution of explained variance
+across application principal components:
+
+	\begin{quote}
+	\texttt{Eiger.py <other flags> --plot-application-scree}
+	\end{quote}
+
+To draw a scatter graph of the predicted versus actual values for a given
+experiment:
+
+	\begin{quote}
+	\texttt{Eiger.py <other flags> --plot-performance-scatter}
+	\end{quote}
+
+A full list of analysis flags and their functions can be found by running:
+
+	\begin{quote}
+	\texttt{Eiger.py -h}
+	\end{quote}
+
+\paragraph{Question}
+How do I export my model for use in SST/macro?
+\paragraph{Answer}
+The following flag can be used to output a generated model for
+consumption by SST/macro:
+
+	\begin{quote}
+	\texttt{Eiger.py <other flags> --output MODEL\_FILENAME}
+	\end{quote}
+

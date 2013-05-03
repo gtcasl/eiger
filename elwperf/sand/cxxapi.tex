@@ -1,0 +1,45 @@
+
+\chapter{C++ Application Programming Interface}\label{sec:api}
+The C++ interface and usage is presented here. Alternate versions for C and Fortran are provided in later sections.
+\section{Setup}
+For C++, the profiled code must include a single header, lwperf.h, which pulls in definitions for the data collection macros based on the compiler flags: -D\_USE\_EIGER and -D\_USE\_CSV. If neither flag is provided, a set of null macros make all the collector-related code disappear from the build.
+After lwperf.h is included in the driver and all files where collection is needed are listed in the updateLoggersCXX.sh script, the driver has a simple init/configure/run/finalize use sequence.
+
+From application driver cxxapp.cpp:
+\begin{verbatim}
+  PERFDECL(PERF::init();)
+  // collect communicator rank and size : profiling a single-node job using
+  PERFDECL(PERF::mpiArgs(me,csize);)
+  PERFDECL(PERF::stringOptions("x5550","gcc","cxxapp.cpp","cxxapp","tesla.",".log");)
+\end{verbatim}
+Here all the initialization calls are wrapped in PERFDECL, a macro that deletes the calls if the profiler is not enabled by one of the USE flags. Unlike many tools, performance collection sites can be disabled on a per-file basis by eliminating from the compiler arguments the -D\_USE\_(CSV|EIGER) flag. On the driver and all files where collection is enabled, the same flag (EIGER or CSV) must be used; mixing is not allowed.
+
+\section{Profile sites}
+At any site (usually a loop nest) where data collection is wanted, the collection point is defined at the beginning of the site with a unique name and additional log names for parameters characterizing the work load (usually integer). The values of the parameters do not need to be available at the beginning of the site; only names are needed. The name given the site must be unique across the entire application. The parameter names are specific to the site and may be reused elsewhere.
+
+From a molecular dynamics example, with a variable work load where nlocal is known at the beginning but nneigh is dependent on double-precision input data arrays:
+\begin{verbatim}
+  PERFDECL(int nneigh=0;); // counter used only when profiling
+  // site Tenergy, log parameter names nlocal, nneigh
+  PERFLOG(Tenergy, IP(nlocal),IP(nneigh)); 
+  for (int i = 0; i < nlocal; i++) { // outer loop
+    ... // fixed work calculating, in part, data_dependent_condition
+    if ( data_dependent_condition) {
+      for (int j=0; j< numneigh; j++) {
+        PERFDECL(nneigh+=numneigh;); // assignment needed only for profiling
+        ... // conditional work
+      }
+    }
+  }
+  PERFSTOP(Tenergy, IP(atom.nlocal),IP(nneigh));
+\end{verbatim}
+
+At the end of the site, PERFSTOP computes the elapsed performance measures (at minimum, wallclock) and these values are logged along with the values passed to the slots defined in the matching PERFLOG statement. In this case the value of nlocal comes from data named atom.nlocal. The data-dependent nneigh parameter is declared and updated only when lwperf is enabled (through use of PERFDECL).
+
+The macros IP or DP must be used on each parameter being recorded at the PERFLOG/PERFSTOP sites, or incorrect code will be generated. The generator scripts need IP/DP to detect the argument types. In the event of a macro or function name conflict with names IP, DP, these macros can be renamed if all the affected lwperf headers and generator scripts are correspondingly updated.
+
+\section{Performance counters}
+The performance measures captured are defined in csvformatter.h:DEFAULT\_PERFCTRS, with supporting definitions and computations required for each in the private data of csvformatter and the start/stop member functions. These are easily extended by the demanding user. At present, support for hardware performance counters is not included as it would add considerable dependency and portability problems. The enterprising user may tailor lwperf to collect hardware counters.
+
+
+

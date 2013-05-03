@@ -1,0 +1,19 @@
+
+\chapter{Introduction}\label{sec:over}
+%\subsection{Introduction}
+Light-weight Performance Data Collectors (lwperf) is a tiny collection of simple, portable macros and an underlying tiny set of tailorable C++ classes aimed at making it easy to gather high-level compute cost numbers and the driving algorithm parameters from individual cluster nodes running real applications. The author's intended use of these numbers is to construct models that support interpolation-based estimates of compute costs at other parameter values.
+
+The collectors support three log formats:
+\begin{itemize}
+\item CSV (tabular) data for modeling with spreadsheets, matlab, and other common tools.
+\item (optional) Eiger\cite{ref:eiger} database logging, which requires MySQL libraries and a server.
+\item (optional) FakeEiger text logging, which avoids the MySQL requirements by generating portable data files that can be read into an Eiger database later in a MySQL-enabled environment.
+\end{itemize}
+
+A key constraint is that the code markup scheme this performance tool uses must balance having minimal affects on the appearance, performance, or compilation of the code while at the same time not requiring a proprietary library or compiler or analysis tool or interposed virtual machine. Most prior work sacrifices at least one major aspect of this constraint.
+
+This tool is not intended to collect data for code segments containing inter-node communication code, particularly MPI code. Rather, it is intended for characterizing node-level serial, locally multi-threaded (OpenMP nests in an MPI/OMP hybrid), or locally accelerated code sections. It is usually the performance of the node or local (co)processor group in aggregate rather than individual thread performance which is of interest, as it is the group which provides the total workload to shared local resources such as memory. Single-node but multi-rank instances of MPI-only codes may also be usefully profiled with this tool. There is no technical reason lwperf cannot be used to profile MPI calls, but there are better tools for profiling MPI widely available.
+
+Using simple shell scripts, lwperf has been extended to support C and modern Fortran (any compiler supporting the BIND(C) feature).
+
+

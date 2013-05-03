@@ -1,0 +1,59 @@
+Author: Benjamin Allan, Sandia National Labs
+Date: 12/2012
+
+
+* Documentation:
+This code is documented in elwperf.pdf (elwperf.tex); make tex to regenerate.
+
+The basic idea is that (for c++,c,fortran) the intrusion in user MPI-based code should be
+minimal (one-liners) once support initialization is done. E.g.
+
+	PERFLOG(someSiteName,IP(someIntInput),DP(someDoubleInput));
+	// work sections
+	...
+	PERFSTOP(someSiteName,IP(someIntInputValue),DP(someDoubleInputValue));
+
+This syntax can be preprocessed into an efficient instrumentation scheme without
+requiring a full parse of the complete source by a tool such as ROSE/Tau.
+
+The PERFLOG call defines the database metric names and the PERFSTOP records 
+values for them. The PERFLOG and PERFSTOP arguments must be consistent.
+Across the application, the values of someSiteName must be distinct.
+
+
+* Build:
+The Makefile provides simple examples of each; 'make all' will build and run them.
+The examples include c, c++, fortran, eiger, non-eiger, and screen output configurations.
+Makefile.mpieiger may need to be edited to set proper local mpieiger library and
+include path definitions.
+
+* Install:
+This is a source package; there is no installed library.
+
+
+* Requirements:
+See elwperf.pdf. lwperf supports eiger but can also be used without eiger at all.
+Thus, lwperf provides its own test rule (make all) and PDF documentation, elwperf.pdf.
+
+* Run:
+The examples using eiger will need a localhost mysql database initialized
+before they can be executed. Script ./resetdb may be modified for this purpose.
+
+
+* Parallelism:
+The code can be mpi parallel and logging is done independently from each process.
+Extension to complete OMP thread-safety has not been verified (seems unlikely).
+
+
+* Extensibility:
+The code is based on shell and make scripts which can/should be lightly tailored
+to specific applications.
+
+
+* Portability:
+The drivers and eperf.cpp contain site specific mysql arguments that need to be modified for use
+elsewhere.
+
+* OS-specific:
+At least under Ubuntu 11.10, the system-provided libmysqlpp.so is defective and specifying libmysqlpp.a is necessary. Building with intel compilers requires mpi and mysqlpp libraries built
+with the intel c++ compiler.

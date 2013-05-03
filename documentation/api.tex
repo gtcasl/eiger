@@ -1,0 +1,349 @@
+\section{Application Programming Interface}
+\label{sec:api}
+This document defines the API to Eiger. The primary implementation of this API uses SQL queries; an alternate implementation (with some restrictions) that preserves application code almost unchanged is described in section \ref{sec:fakeapi}.
+
+\subsection{Requirements}
+
+\begin{itemize}
+\item Provide the interface into and out of Eiger internal 
+  storage mechanism.
+
+\item Hide all implementation details of Eiger's storage (eg
+  SQL commands, etc).
+
+\item API implementations can be written to map any object-
+  oriented language to any internal storage mechanism (eg 
+  C++ to MYSQL, python to Hadoop, etc).
+ 
+\item The API reflects the extensible nature of Eiger.
+
+\item The API includes the specification of the Eiger storage
+  schema.
+
+\item Provide error reporting.
+\end{itemize}
+
+\subsection{Setup/Teardown}
+\begin{description}
+\item[\texttt{Connect}]
+	Connects to the eiger database for this session.\\ \\
+	{\em Parameters}
+	\begin{quote}
+	\begin{description}
+    \item[databaseLocation] string indicating the location of the database
+    \item[databaseName] Database name
+    \item[username] Username with read/write access to this database
+    \item[password] Password for this username
+	\end{description}
+	\end{quote}
+\end{description}
+
+\subsection{Classes}
+%-----------------------------------------------------------
+\begin{description}
+\item[\texttt{Metric}] A metric is something measured about the system. There are five types:
+	\begin{quote}
+	\begin{description}
+	\item[result] Result from a run of an \texttt{Application}. Runtime, energy use, etc.
+	\item[deterministic] Metric that can be found statically. Pertains to a particular \texttt{Dataset}.
+	\item[nondeterministic] Metric that can only be found by running. Pertains to a \texttt{Trial}.
+	\item[machine] Machine parameter. Number of cores, cache size, etc.
+	\item[other] Miscellanea.
+	\end{description}
+	\end{quote}
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{Metric} object.
+    \item[type] \texttt{Metric} type. Enumeration of: result, deterministic, nondeterministic, machine, other.
+    \item[name] \texttt{Metric} name.
+    \item[description] \texttt{Metric} description.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{Metric(type, name, description)}] Creates new \texttt{Metric} from provided \texttt{type}, \texttt{name}, and \texttt{description}.
+    \item[\texttt{Metric(ID)}] Constructs new \texttt{Metric}, but loads members from Eiger database belonging to \texttt{ID}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+	\item[\texttt{toString()}] Returns human readable string describing this object.
+	\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{NondeterministicMetric}] A nondeterministic metric is a metric inherent to an execution; a particular run on a particular machine.
+  This class is used to store one nondeterministic metric from a single run.\\ \\
+%-----------------------------------------------------------
+	{\em Members}
+	\begin{quote}
+	\begin{description}
+	\item[execution] Points to the \texttt{Execution} this \texttt{DynamicMetric} pertains to. 
+	\item[metric] Points to the \texttt{Metric} describing this \texttt{DynamicMetric}.
+	\item[value] Actual value of this metric.
+	\end{description}
+	\end{quote}
+	{\em Constructors}
+	\begin{quote}
+	\begin{description}
+	\item[\texttt{NondeterministicMetric(execution, metric, value)}] Creates a new \texttt{NondeterministicMetric} from the provided \texttt{execution}, \texttt{metric}, and \texttt{value}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+	\item[\texttt{toString()}] Returns human readable string describing this object.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{DeterministicMetric}] A deterministic metric is a metric inherent to a dataset of an application.
+  This class is used to store one deterministic metric from an input dataset.\\ \\
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[dataset] Points to the \texttt{Dataset}this \texttt{DeterministicMetric} pertains to.
+    \item[metric] Points to the \texttt{Metric} describing this \texttt{DeterministicMetric}.
+    \item[value] Actual value of this metric.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{DeterministicMetric(dataset, metric, value)}] Creates a new \texttt{DeterministicMetric} from the provided \texttt{dataset}, \texttt{metric}, and \texttt{value}.
+	\end{description}
+	\end{quote}
+  {\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{MachineMetric}] A machine metric is a metric inherent to a particular hardware configuration.
+  This class is used to store one machine metric from a single machine.\\ \\
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[machine] Points to the \texttt{Machine} this \texttt{MachineMetric} pertains to.
+    \item[metric] Points to the \texttt{Metric} describing this \texttt{MachineMetric}.
+    \item[value] Actual value of this metric.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{MachineMetric(machine, metric, value)}] Creates a new \texttt{MachineMetric} from the provided \texttt{machine}, \texttt{metric}, and \texttt{value}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{Trial}] A trial is a run of a particular application, using a particular input dataset, on a particular machine.
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{Trial} object.
+    \item[dataCollection] Points to the \texttt{DataCollection} this \texttt{Trial} is a member of.
+    \item[machine] Points to the \texttt{Machine} this \texttt{Trial} was run on.
+    \item[application] Points to the \texttt{Application} run for this run.
+    \item[dataset] Points to the input \texttt{Dataset} for this run.
+    \item[properties] Points to the \texttt{Properties} of this run.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{Trial(dataCollection, machine, application, dataset, properties)}] Creates a new \texttt{Trial} from the provided \texttt{dataCollection}, \texttt{machine}, \texttt{application}, \texttt{dataset}, and \texttt{properties}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+		\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{Execution}] An Execution is an individual run of an instrumentation tool that collects nondeterministic metrics or result metrics. Several combine to form a trial.
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{Execution} object.
+	\item[trial] Points to the trial which this \texttt{Execution} is a member of.
+	\item[machine] Points to the machine on which this \texttt{Execution} was run.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+  	\item[\texttt{Execution(trial, machine)}] Creates a new \texttt{Execution} from the provided \texttt{trial} and \texttt{machine}.
+	\end{description}
+	\end{quote}
+  {\em Methods}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{toString()}] Returns human readable string describing this object.
+	\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{Property}] Specifies any extra information about the trial
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{Property} object.
+    \item[name] \texttt{Property} name.
+    \item[description] \texttt{Property} description.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{Properties(name, description)}] Creates a new \texttt{Property} from the provided \texttt{name} and \texttt{description}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+		\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{Machine}] A machine is the hardware applications are run on.
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{Machine} object.
+    \item[name] \texttt{Machine} name.
+    \item[description] \texttt{Machine} description.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{Machine(name, description)}] Creates a new \texttt{Machine} from the provided \texttt{name} and \texttt{description}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+		\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{Application}] An Application is a workload or kernel run on a machine.
+%-----------------------------------------------------------
+  {\em Members}
+    \item[ID] Unique identifier for each \texttt{Application} object.
+	\begin{quote}
+	\begin{description}
+    \item[name] \texttt{Application} name.
+    \item[description] \texttt{Application} description. 
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{Application(name, description)}] Creates a new \texttt{Application} from the provided \texttt{name} and \texttt{description}. 
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+		\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{Dataset}] A Dataset is the input information given to a particular Application.
+  For example the input matrices to a matrix-matrix multiplication application.
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{Dataset} object.
+    \item[application] Points to the \texttt{Application} this \texttt{Dataset} belongs to.
+    \item[name] \texttt{Dataset} name. 
+    \item[description] \texttt{Dataset} description.
+    \item[created] Date and time this \texttt{Dataset} was created.
+    \item[url] Hyperlink to website of the \texttt{Dataset}.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{Dataset(application, name, description, url)}] Creates a new \texttt{Dataset} from the provided \texttt{application}, \texttt{name}, \texttt{description}, and \texttt{url}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+		\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+
+%-----------------------------------------------------------
+\item[\texttt{DataCollection}] A DataCollection is the set of all trials that go into the construction of a single performance model.
+%-----------------------------------------------------------
+  {\em Members}
+	\begin{quote}
+	\begin{description}
+    \item[ID] Unique identifier for each \texttt{DataCollection} object.
+    \item[name] \texttt{DataCollection} name.
+    \item[description] \texttt{DataCollection} description. 
+    \item[created] Date and time this \texttt{DataCollection} was created.
+	\end{description}
+	\end{quote}
+  {\em Constructors}
+	\begin{quote}
+	\begin{description}
+    \item[\texttt{DataCollection(name, description)}] Creates a new \texttt{DataCollection} from the provided \texttt{name} and \texttt{description}.
+    \item[\texttt{DataCollection(ID)}] Creates new \texttt{DataCollection} object, but loads members from Eiger database belonging to this \texttt{ID}.
+	\end{description}
+	\end{quote}
+	{\em Methods}
+	\begin{quote}
+	\begin{description}
+		\item[\texttt{toString()}] Returns human readable string describing this object.
+		\item[\texttt{getID()}] Returns this object's unique ID.
+	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
+	\end{description}
+	\end{quote}
+    
+\end{description}

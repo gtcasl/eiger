@@ -1,0 +1,8 @@
+
+\section{Running}\label{sec:running}
+The application is run as normally, but with output going to screen, disk, or eiger database. A simple example script, {\em runfake}, is provided to illustrate a parameter study and basic handling of the output files.
+The timing data obtainable should be reasonably accurate for measured non-overlapping compute sections, but the overall application performance may be strongly influenced by the extra I/O.
+The screen output option is for debugging purposes.
+Enabling screen output in MPI applications with many measurements has been observed to consume large amounts of stack data space; all-rank screen output is non-parallel and should generally be avoided.
+
+

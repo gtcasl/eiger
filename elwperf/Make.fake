@@ -1,0 +1,39 @@
+# Makefile for mpicxx compiler
+
+SHELL = /bin/sh
+#.IGNORE:
+
+OBJ1 = $(SRC:.cpp=.o)
+OBJ2 = $(OBJ1:.c=.o)
+OBJ = $(OBJ2:.F90=.o)
+
+# load in eiger bits
+# intel, gcc
+TOOLS=gcc
+include ../Makefile.mpifakeeiger
+
+# System-specific settings and -g/-O opts
+DEB= -O
+
+#CC =		$(CXX)
+#CCFLAGS =	$(DEB) -DMPICH_IGNORE_CXX_SEEK -D_USE_EIGER
+LINK =		$(CXX)
+LINKFLAGS =	$(DEB)
+#USRLIB =	-lmpi_cxx -Wl,-rpath,$(HOME)/mpi/intel/lib
+SYSLIB =	$(EIGER_LIB)
+SIZE =		size
+
+# Link rule
+
+$(EXE):	$(OBJ)
+	$(LINK) $(LINKFLAGS) $(OBJ) $(USRLIB) $(SYSLIB) -o $(EXE)
+	$(SIZE) $(EXE)
+
+# Compilation rules
+
+.cpp.o:
+	$(CXX) $(CCFLAGS) -c $(CXXFLAGS) $<
+
+# Individual dependencies
+
+$(OBJ): $(INC)

@@ -1,0 +1,8 @@
+
+\chapter{Data analysis}\label{sec:data}
+Lwperf makes collecting large amounts of performance data easy. Analysis of the data is beyond the scope of this document. Studying the impact of application parameters and compiler options on the runtime performance of specific code segments (loop nests) requires careful construction of a set of benchmark runs spanning some relevant parameter space. The generated CSV files can be easily aggregated and then imported or translated for use in any preferred tool, e.g. a spreadsheet, gnuplot, or matplotlib.
+
+Early use of the tool has provided one general insight. When examining the wall-clock and processor-clock time reported for a profiling site, the two measurements may differ widely due to process interruptions. The most common interruptions will be reported in the other rusage fields recorded, though these fields normally report 0 for number-crunching loops. Consult the system documentation of getrusage for explanation of the reported fields.
+
+The default data collected includes the wall-clock time. This enables production of timelines which capture what code section was active when, not just how much time was spent in each call.
+

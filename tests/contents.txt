@@ -1,0 +1,14 @@
+Eiger Performance Modeling Framework
+
+Andrew Kerr <arkerr@gatech.edu>
+July 5, 2011
+
+This contains a set of test data gathered to demonstrate various aspects of the system.
+
+./synthetic-gpgpu3
+
+	Synthetic data used to demonstrate basic functionality in GPGPU3 paper.
+
+./gpu-wpea
+	Metrics and execution times taken from Parboil, Rodinia, and CUDA SDK for WPEA paper in HiPC.
+
