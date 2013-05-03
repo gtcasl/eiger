@@ -1,0 +1,3 @@
+USE_EIGER=1
+USE_FAKEEIGER=1
+include Makefile.mpieiger

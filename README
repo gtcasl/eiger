@@ -1,0 +1,101 @@
+Eiger Performance Modeling Framework
+
+Andrew Kerr <arkerr@gatech.edu>
+Eric Anger	<eanger@gatech.edu>
+July 5, 2011
+
+=============
+FOLDER LAYOUT
+=============
+./api			- The Eiger C++ API
+./database		- MySQL schema for Eiger database
+./documentation - Documentation describing the implementation of Eiger
+./eiger			- Eiger performance modeling framework
+./examples		- Examples of basic modeling functionality
+./ocelot-trace	- GPU Ocelot trace generators with Eiger interface
+./tests         - Test datasets
+./elwperf	- Sandia's Fortran and C/C++ macro interface for common profiling tasks
+
+
+Please review the requirements specification in the ./documentation folder for all
+required software packages.
+
+=============
+USAGE
+=============
+All metric collection, model generation, polling, serialization, and reporting
+functionality can be installed with the following command:
+
+python setup.py install
+
+They can be controlled by the
+Eiger.py script; more information can be found by entering the following 
+command after installing:
+
+Eiger.py -h
+
+As well, the Eiger module can be imported and used to issue any of the same
+commands used by the command line script. Examples of basic modeling functions
+can be found in the ./examples folder.
+
+=============
+DATABASE SETUP
+=============
+The Eiger modeling framework relies upon a MySQL relational database to manage metric
+storage, model construction, and model serialization. Read and write access must be
+available for a database server, although there is no limitation as to the location
+of the database (ie remote vs. local). To initialize a new database, open a MySQL
+client and enter the following commands:
+
+mysql> CREATE DATABASE MyEigerDatabase; 
+mysql> USE MyEigerDatabase;
+mysql> SOURCE /path/to/eiger/database/schema.sql;
+
+At this point the database named 'MyEigerDatabase' now contains all necessary tables
+used by Eiger.
+
+
+=============
+API AND GENERATOR INSTALLATION
+=============
+The C++ API and the GPU Ocelot trace generators require compilation and installation.
+
+The C++ API requires MySQL and MySQL++. Set the mysqlLocation and mysqlppLocation paths in
+the SConstruct file to point to the appropriate locations on your machine.
+
+The GPU Ocelot trace generators require GPU Ocelot. Make sure gpuocelotLocation in the
+SConstruct file points to the appropriate location on your machine.
+
+To build and install the C++ API and the GPUOcelot interface, enter this command:
+
+scons install
+
+This will create dynamic library objects for both the C++ API and the GPU Ocelot trace
+generators and install them in /usr/local.
+
+To only build the Eiger C++ API library object, enter this command:
+
+scons install-eiger-only
+
+The Ocelot trace generators library can selected individually, although it requires
+the C++ interface. To specify just the trace generator library (should the C++ API
+already be installed), enter this command:
+
+scons install-ocelot-only
+
+To specify an install directory other than the default of /usr/local, 
+pass the following flag:
+
+scons install -Q PREFIX=/path/to/install/dir
+
+For help, enter:
+
+scons -h
+
+=============
+TESTING
+=============
+Several sets of test data reside in the ./tests subdirectory. This data was used 
+for different publications and may or may not retain their functionality as Eiger
+is developed.
+

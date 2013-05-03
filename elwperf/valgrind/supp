@@ -1,0 +1,135 @@
+{
+  ortp
+  Memcheck:Param
+  ...
+  obj:/usr/lib/openmpi/lib/libopen-pal.so.0.0.0
+  ...
+}
+{
+  ortc
+  Memcheck:Cond
+  ...
+  obj:/usr/lib/openmpi/lib/libopen-pal.so.0.0.0
+  ...
+}
+{
+  ortr
+  Memcheck:Addr8
+  ...
+  obj:/usr/lib/openmpi/lib/libopen-pal.so.0.0.0
+  ...
+}
+{
+  ortp
+  Memcheck:Param
+  ...
+  obj:/usr/lib/openmpi/lib/libmpi.so.0.0.2
+  ...
+}
+{
+  mpic
+  Memcheck:Cond
+  ...
+  obj:/usr/lib/openmpi/lib/libmpi.so.0.0.2
+  ...
+}
+{
+ mpir
+  Memcheck:Addr8
+  ...
+  obj:/usr/lib/openmpi/lib/libmpi.so.0.0.2
+  ...
+}
+{
+ mpip
+  Memcheck:Param
+  ...
+  obj:/usr/lib/openmpi/lib/libmpi.so.0.0.2
+  ...
+}
+{
+   writev1
+   Memcheck:Param
+   writev(vector[...])
+   fun:writev
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:/usr/lib/openmpi/lib/libmpi.so.0.0.2
+   fun:PMPI_Init
+   fun:main
+}
+
+{ 
+ sched1
+  Memcheck:Param
+   sched_setaffinity(mask)
+   fun:syscall
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:opal_paffinity_base_select
+   fun:opal_init
+   fun:orte_init
+   obj:/usr/lib/openmpi/lib/libmpi.so.0.0.2
+   fun:PMPI_Init
+   fun:main
+}
+
+
+{
+   name7
+   Memcheck:Cond
+   fun:*
+   fun:PMPI_Init
+   fun:*
+}
+{
+   name5
+   Memcheck:Addr8
+   fun:*
+   fun:PMPI_Init
+   fun:*
+}
+{
+   name6
+   Memcheck:Addr4
+   fun:*
+   fun:PMPI_Init
+   fun:*
+}
+{
+  intel_sse2_strrchr
+  Memcheck:Addr8
+  fun:__intel_sse2_strrchr
+  ...
+  fun:main
+}
+{
+ intel_sse2_strncat
+  Memcheck:Addr8
+  fun:__intel_sse2_strncat
+  ...
+  fun:main
+}
+{
+intel_sse2_strdup
+  Memcheck:Addr8
+  fun:__intel_sse2_strdup
+  ...
+  fun:main
+}
+{
+  nompiinit
+  Memcheck:Addr8
+  ...
+  fun:main
+  fun:main
+  
+}
+

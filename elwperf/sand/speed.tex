@@ -1,0 +1,21 @@
+
+\chapter{Performance of the instrumentation}\label{sec:speed}
+The overhead of performance measurements with lwperf is dominated by the costs of writing output to files or database connections and of calls on the microsecond real-time clock.
+The C and Fortran bindings, being wrappers, involve a few extra function invocations compared to the C++, but this is negligible compared to the I/O at present.
+
+When eiger database profiling is active, the database presents a bottleneck to recording results from parallel execution. When CSV or flat file (fakeeiger) output is used, there is no contention for individual files; however, an unshared file is created for each site in each MPI process. With a very large number of sites and processes on a single host, the maximum number of file descriptors available from the operating system may be exhausted. Profiling sites which are never executed do not generate files at all; you pay for what you use.
+
+\section{Minutiae}
+The aims of the lwperf implementation tactics are:
+\begin{itemize}
+\item to make lookup of the logging objects (eiger pointer or file pointer containers) inexpensive. This is achieved by converting the site names into an enumeration or integer index. This enumeration must is constructed by analyzing the entire application source code. The names are prefixed by the code generators so that the names of code entities (functions, classes, enum members) may be used as site names without conflict in nearly all cases.
+
+\item to avoid reconstructing or reopening complex objects with operating system presence, such as any file or any eiger object with a commit() member.
+\item to avoid inter-language string conversion.
+\end{itemize}
+
+In the C++ binding, a local variable is generated that enables a single object lookup to handle each site. In the C and Fortran bindings, portability and syntactic considerations force us to use two object lookups per site execution.
+
+The only place that inter-language string processing occurs is in the PERF\_OPTS macro of the Fortran binding.
+
+

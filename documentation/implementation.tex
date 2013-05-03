@@ -1,0 +1,100 @@
+\section{Implementation Details}
+\label{sec:imp}
+This document walks through the implementation details of the Eiger components,
+giving an overview of major structures and programming practices.
+
+\subsection{Class Hierarchy}
+Eiger employs a rigid structure for the description of training data. This
+structure, enforced by the API specification as well as the interal storage
+mechanism, is intended to be as flexible and understandable as possible, so
+that users are able to formulate their model generation in whichever way is
+easiest. This document will lay out the basic hierarchy and interactions
+between classes; more information can be found in the API specification.
+
+\begin{description}
+\item[DataCollection]Performance models are built from data contained in a
+DataCollection. A DataCollection serves as an identifier for a set of training
+data points, known as {\em Trials}.
+
+\item[Trial] A Trial represents a single run of a program to collect training data.
+Each Trial is a single run of a particular {\em Application}, fed with data from a
+particular {\em Dataset}, executed on a particular {\em Machine}, modified by a particular
+environmental {\em Property}.  A Trial serves as a unifying structure under which all
+Metrics are contained, including those from the Machine, the Application, and
+the performance metric.
+
+\item[Execution] An execution represents the individual instrumentation tools used
+to collect metrics from a single Trial. The union of Metrics from all of a
+Trial's Executions comprize the entire set of Metrics that describe that Trial.
+This allows for running several different tools (emulator, simulator, etc) to
+collect metrics that will all go together to describe a Trial.
+
+\item[Application] An Application is a program run to collect training data. It can
+be a full application, a kernel, or a microbenchmark.  Several different input
+Datasets can be run through the same Application, i.e. different sized input
+matrix Datasets can be run through the same matrix multiplication Application.
+
+\item[Dataset] A Dataset describes a particular set of input data run through an
+Application. A Dataset may not be shared across several Applications.
+DeterministicMetrics are associated with a Dataset; any run of the same
+Application with the same Dataset should result in the same values for
+DeterministicMetrics.
+
+\item[Machine] The Machine class specifies the hardware upon which an Application is
+run. This class is used to contain all Metrics that are invariant across
+Applications that run on the same hardware.
+
+\item[Property] The Property class is used to associate any extra environmental
+details associated with the state of execution of a particular Trial. This may
+include things such as concurrent workloads on the system or existing traffic
+in the network.
+
+\item[Metric] A Metric describes a measurable quantity of the system. 
+There are several types of Metrics:
+	\begin{description}
+	\item[result] Performance metric the model will try to predict.  Runtime,
+		energy use, etc.
+	\item[deterministic] Any value that is invariant across executions of a
+		particular execution. Static instruction counts, input 
+		data size, etc.
+	\item[nondeterministic] Values that may change from execution to execution.
+		This includes measures such as dynamic instruction counts, cache miss
+		rates, etc.
+	\item[machine] Values that pertain only to the Machine an Application is run
+		on. Memory capacity, clock speeds, etc.
+	\item[other] Miscellanea used to describe the system by the Property class.
+	\end{description}
+
+\item[DeterministicMetric] This class acts as a wrapper for a single result of a
+measured Metric that has deterministic type. Each Dataset will have one
+DeterministicMetric for every Metric of deterministic type.
+
+\item[NondeterministicMetric] Analogous to DeterministicMetrics but for Metrics
+of nondeterministic type. This includes the result type, as by definition
+any performance result is dependent upon the execution of the workload on
+hardware.
+
+\item[MachineMetric] Analogous to DeterministicMetric but for Metrics of machine
+type. 
+\end{description}
+
+\subsection{Internal Data Store}
+By design the API abstracts away the requirement for any particular
+database technology, although at this time this interface is only
+implemented for the MySQL database. There is a table for each of the major
+classes, as well as extra tables used for model serialization. Eiger does
+not require that the database be stored locally; rather, the API provides a
+way to indicate the IP address or hostname of the machine, allowing for
+nonlocal data storage.  Further details can be found in the API
+documentation in Section \ref{sec:api}. The schema describing the database is in
+\texttt{eiger/database/schema.sql}. 
+
+\subsection{Model File Format}
+For integration with the SST/macro simulator, Eiger can serialize its
+performance models to files. Each file is formatted so that it can be read
+by the appropriate module within SST/macro, however there is nothing
+inherent to this format that prevents it from being used by different
+sources. More details on the exact file format can be found in
+\texttt{eiger/PerformanceModel.py} under the \texttt{toFile()} function. 
+See the FAQ in Section \ref{sec:faq}
+for details on exporting performance models.

@@ -1,0 +1,58 @@
+\section{Overview}
+\label{sec:over}
+\subsection{Introduction}
+Eiger is a framework for the construction, analysis, and use of
+statistical performance models of computer systems.  It is designed with
+the goals of flexibility and understandability above that of model
+construction speed.  As such, the framework uses as little expert
+knowledge about the modeled system as possible, as well as generalized
+notions of independent and dependent metrics. The models it generates
+are concise, explicit functional representations of the performance
+metric, allowing for insight into those metrics that most contribute to
+performance. As well, a set of additional analysis tools are provided to
+aid users in validating, improving, and understanding the models they
+generate. This document will present a brief lay out of key components
+within Eiger, common utilization methodology, and resources for more
+information.
+
+\subsection{Modeling Procedure}
+As a statistical modeling tool, Eiger requires training data. This data
+is what informs the performance models, as well as guides their
+construction and accuracy.  Eiger will generate performance models that
+only follow the training data it is provided with; this implies that
+Eiger must be trained on data representative of the types of models the
+user wishes to generate. As a rule of thumb, the more data that Eiger
+has to work with, the better quality the models. The pathway that Eiger
+sets up for modeling has several phases:
+
+	\begin{description}
+		\item[Collection of Instrumented Data]
+		Instrumentation API implementations in Python and C++ for sending collected input data to the Eiger internal data store.
+		\item[Storage]
+		MySQL database schema and integration with instrumentation
+		APIs.
+		\item[Generation]
+		Flexible, semi-automated statistical model generation.
+		\item[Analysis]
+		Performance and structure visualization tools, as well as
+		validation procedures.
+		\item[Export]
+		Standardized model object export, integration with SST/macro
+		large-scale simulator.
+	\end{description}
+
+\subsection{Further Information}
+For more information on the motivation, implementation details, 
+experimental results, and exposition on future work, see the 
+publication ``Eiger: A Framework for the Automated Synthesis of 
+Statistical Performance Models" in the 1st Workshop on Performance 
+Engineering and Applications, held in conjunction with the 2012 High 
+Performance Computing (HiPC) conference. It is also included in 
+this directory as \texttt{eiger-WPEA2012.pdf}.\\ \\
+Should any questions or concerns arise, feel free to contact the
+authors:
+	\begin{quote}
+	\centering
+	Eric Anger	-	eanger@gatech.edu\\
+	Andrew Kerr	-	akerr@gatech.edu
+	\end{quote}
