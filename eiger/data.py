@@ -1,1 +1,1 @@
-../tests/synthetic-gpgpu3/data.py
+../examples/synthetic-gpgpu3/data.py
