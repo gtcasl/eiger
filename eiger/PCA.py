@@ -11,8 +11,6 @@
 from scipy import linalg
 import numpy as np
 import math, cmath
-import MySQLdb
-import warnings
 
 ####################################################################################################
 #
