@@ -94,8 +94,9 @@ class DataCollection:
 					WHERE t.dataCollectionID = %s""" % 
 					(self._my_id, self._my_id, self._my_id))
 		for (trial, name, value) in cursor.fetchall():
-			self.profile[self._trial_id_map[trial], self.metrics[1][name]] \
-						= value
+			self.profile[self._trial_id_map[trial], \
+						 self.metrics[1][name]] = value
+		cursor.close()
 
 	def _loadObject(self, cursor, identifier):
 		command = """SELECT trials.id,tbl.name,tbl.description \
