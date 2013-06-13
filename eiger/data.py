@@ -1,1 +1,0 @@
-../examples/synthetic-gpgpu3/data.py
