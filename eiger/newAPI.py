@@ -1,9 +1,18 @@
 import numpy as np
+import MySQLdb as mdb
+
+def getDataCollections(*args, **kwargs):
+	db = mdb.connect(*args, **kwargs)
+	cursor = db.cursor()
+	cursor.execute("""SELECT name, description from datacollections""")
+	return [dc for dc in cursor.fetchall()]
+
 
 class DataCollection:
 
-	def __init__(self, name, db):
+	def __init__(self, name, *args, **kwargs):
 		""" load a data collection from db """
+		db = mdb.connect(*args, **kwargs)
 		cursor = db.cursor()
 
 		cursor.execute("""SELECT ID FROM datacollections \
@@ -114,9 +123,7 @@ class DataCollection:
 		return destination
 
 if __name__ == "__main__":
-	import MySQLdb as mdb
-	
-	db = mdb.connect(host='localhost',user='root',passwd='root',db='minimd')
-	d = DataCollection('Nbuild', db)
+	d = DataCollection('Nbuild', 
+			host='localhost',user='root',passwd='root',db='minimd')
 	pass
 
