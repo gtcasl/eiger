@@ -11,6 +11,23 @@ def getDataCollections(*args, **kwargs):
 class DataCollection:
 
     def __init__(self, name, *args, **kwargs):
+
+		""" Members:
+		self._trial_id_map 
+			maps trial ID to its index in the profile
+		self.apps
+			(['app_name', 'app description'], {'app_name': row index in profile})
+		self.machines
+			(['machine_name', 'machine description'], {'machine_name': row index in profile})
+		self.dataset
+			(['dataset_name', 'dataset description'], {'dataset_name': row index in profile})
+		self.metrics
+			([('metric_name', 'metric description', 'metric type')],
+			 {'metric_name': col index in profile})
+		self.profile
+			numpy 2d array where each trial is a row and each column is a value
+		"""
+
         """ load a data collection from db """
         db = mdb.connect(*args, **kwargs)
         cursor = db.cursor()
