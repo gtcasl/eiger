@@ -13,11 +13,11 @@ class TestDataCollection(unittest.TestCase):
 		self.dc = DataCollection()
 
 	def testEmpty(self):
-		self.assertTrue(self.dc.machines.empty())
-		self.assertTrue(self.dc.applications.empty())
-		self.assertTrue(self.dc.trials.empty())
-		self.assertTrue(self.dc.datasets.empty())
-		self.assertTrue(self.dc.metrics.empty())
+		self.assertFalse(self.dc.machines)
+		self.assertFalse(self.dc.applications)
+		self.assertFalse(self.dc.trials)
+		self.assertFalse(self.dc.datasets)
+		self.assertFalse(self.dc.metrics)
 
 
 

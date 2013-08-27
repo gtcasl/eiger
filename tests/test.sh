@@ -1,4 +1,6 @@
 #!/bin/bash
+touch test.model
+
 ../eiger/Eiger.py \
 --database-name=temp \
 --database-user=root \
@@ -12,9 +14,10 @@
 --metric-ids 8 11 12 13 14 \
 --training-datacollection-id=1 \
 --experiment-datacollection-id=1 \
---output=test.model &> /dev/null
+--output=test.model #&> /dev/null
 
-if diff gold.model test.model &>/dev/null ; then
+#if diff gold.model test.model &>/dev/null ; then
+if diff gold.model test.model ; then
 	echo "Pass!"
 else
 	echo "Fail!"
