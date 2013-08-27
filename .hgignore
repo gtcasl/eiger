@@ -6,3 +6,6 @@ syntax: glob
 api/gcc/*
 api/intel/*
 .*.swp
+elwperf/doc/*.aux
+elwperf/doc/*.log
+elwperf/doc/*.toc
