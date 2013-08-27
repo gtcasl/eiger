@@ -1,2 +1,7 @@
 syntax: glob
 *.pyc
+.build_dir/*
+.sconsign.dblite
+*.os
+api/gcc/*
+api/intel/*
