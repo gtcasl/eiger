@@ -5,3 +5,4 @@ syntax: glob
 *.os
 api/gcc/*
 api/intel/*
+.*.swp
