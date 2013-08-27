@@ -1,0 +1,72 @@
+
+ifndef USE_EIGER
+USE_EIGER=1
+endif
+ifndef USE_FAKEEIGER
+USE_FAKEEIGER=0
+endif
+
+ifeq ($(USER),baallan)
+EIGERDIR=$(HOME)/sst/gatech/eiger-svn
+INTELSQLDIR=/home/baallan/sst/mysqlpp
+EIGER_INC=-I$(EIGERDIR)/api
+else
+#$(error Fix the makefile definitions below and remove this line)
+EIGERDIR=$(HOME)/eiger/trunk
+INTELSQLDIR=/usr/lib
+EIGER_INC=-I$(EIGERDIR)/api
+endif
+#end baallan
+
+CC=c_compiler_not_set
+CXX=c++_compiler_not_set
+
+ifndef TOOLS
+TOOLS=gcc
+endif
+
+ifeq ($(TOOLS),gcc)
+FLAVOR=openmpi
+CC = mpicc.$(FLAVOR)
+CXX = mpicxx.$(FLAVOR)
+CFLAGS := -g
+CXXFLAGS := -g 
+ifeq ($(USE_FAKEEIGER),1)
+EIGER_LIB=$(EIGERDIR)/api/$(TOOLS)/libmpifakeeigerInterface.so
+else
+EIGER_LIB=$(EIGERDIR)/api/$(TOOLS)/libeigerInterface.so  /usr/lib/libmysqlpp.a -lmysqlclient
+endif
+endif
+#gcc
+
+ifeq ($(TOOLS),intel)
+CC = mpicc -restrict  
+CXX = mpicxx -restrict 
+CFLAGS = -restrict
+CXXFLAGS = -restrict
+
+ifeq ($(USE_FAKEEIGER),1)
+EIGER_LIB=$(EIGERDIR)/api/$(TOOLS)/libmpifakeeigerInterface.so
+else
+EIGER_LIB=$(EIGERDIR)/api/$(TOOLS)/libeigerInterface.so $(INTELSQLDIR)/lib/libmysqlpp.so -lmysqlclient
+endif
+endif
+#intel
+
+ifndef EIGERDIR
+$(error EIGERDIR not set in Makefile.mpieiger)
+endif
+ifeq ($(CC),c_compiler_not_set)
+$(error TOOLS not set adequately in Makefile.mpieiger)
+endif
+
+
+CPPFLAGS := -I.. -I.
+
+ifeq ($(USE_EIGER),1)
+LDFLAGS += $(EIGER_LIB)
+CXXFLAGS += $(EIGER_INC) -D_USE_EIGER
+ifeq ($(USE_FAKEEIGER),1)
+CXXFLAGS += -D_USE_FAKEEIGER
+endif
+endif
