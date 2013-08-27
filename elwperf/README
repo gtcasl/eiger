@@ -7,7 +7,7 @@ the usage of Lwperf, which may require configuration to your particular
 execution environment.
 
 * Documentation:
-This code is documented in elwperf.pdf (elwperf.tex); make tex to regenerate.
+This code is documented in lwperf.pdf (lwperf.tex); make tex to regenerate.
 
 The basic idea is that (for c++,c,fortran) the intrusion in user MPI-based code should be
 minimal (one-liners) once support initialization is done. E.g.
@@ -36,8 +36,9 @@ This is a source package; there is no installed library.
 
 
 * Requirements:
-See elwperf.pdf. lwperf supports eiger but can also be used without eiger at all.
-Thus, lwperf provides its own test rule (make all) and PDF documentation, elwperf.pdf.
+See lwperf.pdf. lwperf supports eiger but can also be used without eiger at all.
+Thus, lwperf provides its own test rule (make all) and PDF documentation,
+lwperf.pdf.
 
 * Run:
 The examples using eiger will need a localhost mysql database initialized
