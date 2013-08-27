@@ -1,6 +1,10 @@
 Author: Benjamin Allan, Sandia National Labs
 Date: 12/2012
 
+* Examples:
+The examples directory contains simple C, C++, and Fortran apps that demonstrate
+the usage of Lwperf, which may require configuration to your particular
+execution environment.
 
 * Documentation:
 This code is documented in elwperf.pdf (elwperf.tex); make tex to regenerate.
