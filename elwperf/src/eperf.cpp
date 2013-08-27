@@ -24,7 +24,7 @@ EigerPerf::stringOptions(std::string host, std::string tools, std::string app, s
 
         std::string dbfile = "127.0.0.1";
         std::string uname = "root";
-        std::string pw = "eiger123";
+        std::string pw = "root";
 
 	// in mpi-parallel, we will pound the database
 	eiger::Connect(dbfile, dbname, uname, pw );
