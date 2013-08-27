@@ -1,5 +1,5 @@
 
-all: elwperf.tex
+all: lwperf.tex
 	pdflatex $<
 	pdflatex $<
 
