@@ -16,11 +16,16 @@ class DataCollection:
         self.apps = [] #[(name, desc, [row idxs])]
         self.machines = [] #[(name, desc, [row idxs])]
         self.datasets = [] #[(name, desc, [row idxs])]
-        self.metrics = [] #[(name, desc, type, [col idxs])]
+        self.metrics = [] #[(name, desc, type)]
         self.profile = np.ndarray((0,0)) #[num trials, num metrics]
 
         if name:
             self._load(name, *args, **kwargs)
+
+    def metricIndexByType(self, *args):
+        """ Return column index corresponding to each metric type listed in args """
+        return [idx for idx, x in enumerate(self.metrics) \
+                if x[2] in args]
 
     def _load(self, name, *args, **kwargs):
         """ load a data collection from db """
@@ -73,50 +78,49 @@ class DataCollection:
                     ON mach.ID = tr.machineID \
                     WHERE tr.dataCollectionID = %s""" \
                     % (self._my_id, self._my_id, self._my_id))
-        self.metrics = ([], {})
-        for (idx, (name, desc, mtype)) in enumerate(cursor.fetchall()):
-            if (name,desc,mtype) not in self.metrics[0]:
-                self.metrics[0].append((name,desc,mtype))
-            self.metrics[1][name] = idx
+        self.metrics = [x for x in cursor.fetchall()]
         
         # get all data now
         n_trials = len(self._trial_id_map)
-        n_mets = len(self.metrics[1])
+        n_mets = len(self.metrics)
         self.profile = np.ndarray((n_trials,n_mets))
-        cursor.execute(""" \
-                SELECT t.ID,mets.name,dm.metric \
-                    FROM deterministic_metrics as dm \
-                    JOIN datasets as ds \
-                    ON dm.datasetID = ds.ID \
-                    JOIN metrics as mets \
-                    ON dm.metricID = mets.ID \
-                    JOIN trials as t \
-                    ON t.datasetID = ds.ID \
-                    WHERE t.dataCollectionID = %s \
-                UNION \
-                SELECT tr.ID,mets.name,ndm.metric \
-                    FROM nondeterministic_metrics as ndm \
-                    JOIN metrics as mets \
-                    ON ndm.metricID = mets.ID \
-                    JOIN executions as ex \
-                    ON ndm.executionID = ex.ID \
-                    JOIN trials as tr \
-                    ON ex.trialID = tr.ID \
-                    WHERE tr.dataCollectionID = %s \
-                UNION \
-                SELECT t.ID,mets.name,mm.metric \
-                    FROM machine_metrics as mm \
-                    JOIN machines as mach \
-                    ON mm.machineID = mach.ID \
-                    JOIN metrics as mets \
-                    ON mm.metricID = mets.ID \
-                    JOIN trials as t \
-                    ON t.machineID = mach.ID \
-                    WHERE t.dataCollectionID = %s""" % 
-                    (self._my_id, self._my_id, self._my_id))
-        for (trial, name, value) in cursor.fetchall():
-            self.profile[self._trial_id_map[trial], \
-                         self.metrics[1][name]] = value
+        for idx, (name, desc, mtype) in enumerate(self.metrics):
+            cursor.execute(""" \
+                    SELECT t.ID,dm.metric \
+                        FROM deterministic_metrics as dm \
+                        JOIN datasets as ds \
+                        ON dm.datasetID = ds.ID \
+                        JOIN metrics as mets \
+                        ON dm.metricID = mets.ID \
+                        JOIN trials as t \
+                        ON t.datasetID = ds.ID \
+                        WHERE t.dataCollectionID = %s \
+                        && mets.name = "%s" \
+                    UNION \
+                    SELECT tr.ID,ndm.metric \
+                        FROM nondeterministic_metrics as ndm \
+                        JOIN metrics as mets \
+                        ON ndm.metricID = mets.ID \
+                        JOIN executions as ex \
+                        ON ndm.executionID = ex.ID \
+                        JOIN trials as tr \
+                        ON ex.trialID = tr.ID \
+                        WHERE tr.dataCollectionID = %s \
+                        && mets.name = "%s" \
+                    UNION \
+                    SELECT t.ID,mm.metric \
+                        FROM machine_metrics as mm \
+                        JOIN machines as mach \
+                        ON mm.machineID = mach.ID \
+                        JOIN metrics as mets \
+                        ON mm.metricID = mets.ID \
+                        JOIN trials as t \
+                        ON t.machineID = mach.ID \
+                        WHERE t.dataCollectionID = %s \
+                        && mets.name = "%s" """ % \
+                    (self._my_id, name, self._my_id, name, self._my_id, name))
+            for (trial, value) in cursor.fetchall():
+                self.profile[self._trial_id_map[trial], idx] = value
         cursor.close()
 
     def _loadObject(self, cursor, identifier):
