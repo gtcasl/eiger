@@ -230,67 +230,27 @@ class VARIMAX:
 ####################################################################################################
 #
 
-def exampleInit(m, n):
-    A = np.zeros((m, n))
-    A[0] = np.array( [ 3.0 * math.cos(math.pi * 2 * j / n) for j in range(0, n) ] )
-    A[1] = np.array( [ 1.0 * math.sin(math.pi * 2 * j / n) for j in range(0, n) ] )
-    r = 31.0
-    c = math.cos(math.pi*r/180.0)
-    s = math.sin(math.pi*r/180.0)
-    R = np.matrix([ [c, s], [-s, c] ])
-    A = R * A + np.random.randn(m, n) * 0.1
-    return A
-
-def simplePCATest():
-
-    from pylab import plot, show, figure, title, bar
-    
-    # construct some test matrix
-    m = 2
-    n = 55
-    X = exampleInit(m, n)
-    
-    pca = PCA(X)
-    V = pca.pc()
-    print "PCA: V = ", V
-    
-    vmax = VARIMAX(pca.pc())
-    R,rotatedV = vmax.compute()
-    print "VARIMAX = "
-    print R
-    
-    PX = pca.project(X)
-    print "varimax * V * X = ", PX
-    print "rotated principal components = ", rotatedV
-
-    figure()
-    plot(X[0,:], X[1,:], '.')
-    plot([0, V[0,0]], [0, V[1,0]], '--')
-    plot([0, V[0,1]], [0, V[1,1]], '--')
-    title('Original Data')
-
-    figure()
-    plot(PX[0,:], PX[1,:], '.')
-    title('Projected')
-    show()
-
-def generateTestData(N, p, pcas):
-    def func(X):
-        return X[0] 
-
-def PCATest():
-    from pylab import plot, show, figure, title, bar
-    
-    N = 20
-    p = 4
-    pcas = 2
-    X = generateTestData(N, p, pcas)
-    pca = PCA(X)
-    vmax = VARIMAX(pca.pc())
-    
-    
-    
-
 if __name__ == "__main__":
-    simplePCATest()
-    
+    m = 5
+    n = 5
+    A = np.zeros((m,n))
+
+    for i in range(m):
+        for j in range(n):
+            A[i][j] = i * j
+   
+    print "A:"
+    print A
+
+    pca = PCA(A)
+    print "All PCs: "
+    print pca.pc()
+
+    print "First 2 PCs: "
+    print pca.reduced(targetComponents=2)
+
+    print "Projected: "
+    print pca.project(A)
+
+    PlotScree(pca.loadings)
+
