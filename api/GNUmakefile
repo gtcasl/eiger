@@ -17,6 +17,7 @@ endif
 
 CXXFLAGS= -std=c++0x -fPIC -I.. -g
 
+MYSQLINC=-I/usr/include/mysql++ -I/usr/include/mysql
 ifeq ($(USER),baallan)
 MYSQLINC=-I/home/baallan/sst/mysqlpp/include/mysql++ -I/usr/include/mysql
 endif
@@ -37,7 +38,7 @@ loader:
 	$(CXX) -o $(TOOLS)/mfeloader $(CXXFLAGS) mfeloader.cpp -L$(TOOLS) -leigerInterface -lmysqlpp -Wl,-rpath,`pwd`/$(TOOLS)
 
 dirs:
-	-mkdir  intel gcc
+	-mkdir $(TOOLS)
 
 clean:
-	$(RM) *.o *.os feloader lib*.so mfeloader
+	$(RM) -rf $(TOOLS) *.o *.os feloader lib*.so mfeloader
