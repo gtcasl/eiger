@@ -10,24 +10,19 @@ def getDataCollections(*args, **kwargs):
 
 class DataCollection:
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name=None, *args, **kwargs):
 
-		""" Members:
-		self._trial_id_map 
-			maps trial ID to its index in the profile
-		self.apps
-			(['app_name', 'app description'], {'app_name': row index in profile})
-		self.machines
-			(['machine_name', 'machine description'], {'machine_name': row index in profile})
-		self.dataset
-			(['dataset_name', 'dataset description'], {'dataset_name': row index in profile})
-		self.metrics
-			([('metric_name', 'metric description', 'metric type')],
-			 {'metric_name': col index in profile})
-		self.profile
-			numpy 2d array where each trial is a row and each column is a value
-		"""
+        self._trial_id_map = {}
+        self.apps = [] #[(name, desc, [row idxs])]
+        self.machines = [] #[(name, desc, [row idxs])]
+        self.datasets = [] #[(name, desc, [row idxs])]
+        self.metrics = [] #[(name, desc, type, [col idxs])]
+        self.profile = np.ndarray((0,0)) #[num trials, num metrics]
 
+        if name:
+            self._load(name, *args, **kwargs)
+
+    def _load(self, name, *args, **kwargs):
         """ load a data collection from db """
         db = mdb.connect(*args, **kwargs)
         cursor = db.cursor()
@@ -125,18 +120,24 @@ class DataCollection:
         cursor.close()
 
     def _loadObject(self, cursor, identifier):
-        command = """SELECT trials.id,tbl.name,tbl.description \
+        destination = []
+        command = """SELECT DISTINCT tbl.name, tbl.description \
                 FROM %ss as tbl \
                 JOIN trials ON trials.%sID = tbl.ID \
                 WHERE trials.dataCollectionID = %s""" % \
                 (identifier, identifier, self._my_id,)
         cursor.execute(command)
-        destination = ([], {})
-        for (trial,name,desc) in cursor.fetchall():
-            if (name,desc) not in destination[0]:
-                destination[0].append((name,desc))
-            destination[1].setdefault(name, [])
-            destination[1][name].append(self._trial_id_map[trial])
+        for (name, desc) in cursor.fetchall():
+            command = """SELECT trials.ID \
+                    FROM %ss as tbl \
+                    JOIN trials ON trials.%sID = tbl.ID \
+                    WHERE trials.dataCollectionID = %s
+                    && tbl.name = "%s" && tbl.description = "%s" """ % \
+                    (identifier, identifier, self._my_id, name, desc)
+            cursor.execute(command)
+            destination.append((name, desc, 
+                                [self._trial_id_map[trialID[0]] \
+                                 for trialID in cursor.fetchall()]))
         return destination
 
 if __name__ == "__main__":
