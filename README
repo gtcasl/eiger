@@ -57,43 +57,11 @@ mysql> SOURCE /path/to/eiger/database/schema.sql;
 At this point the database named 'MyEigerDatabase' now contains all necessary tables
 used by Eiger.
 
-
 =============
-API AND GENERATOR INSTALLATION
-=============
-The C++ API and the GPU Ocelot trace generators require compilation and installation.
-
-The C++ API requires MySQL and MySQL++. Set the mysqlLocation and mysqlppLocation paths in
-the SConstruct file to point to the appropriate locations on your machine.
-
-The GPU Ocelot trace generators require GPU Ocelot. Make sure gpuocelotLocation in the
-SConstruct file points to the appropriate location on your machine.
-
-To build and install the C++ API and the GPUOcelot interface, enter this command:
-
-scons install
-
-This will create dynamic library objects for both the C++ API and the GPU Ocelot trace
-generators and install them in /usr/local.
-
-To only build the Eiger C++ API library object, enter this command:
-
-scons install-eiger-only
-
-The Ocelot trace generators library can selected individually, although it requires
-the C++ interface. To specify just the trace generator library (should the C++ API
-already be installed), enter this command:
-
-scons install-ocelot-only
-
-To specify an install directory other than the default of /usr/local, 
-pass the following flag:
-
-scons install -Q PREFIX=/path/to/install/dir
-
-For help, enter:
-
-scons -h
+API INSTALLATION
+============= 
+The C++ API requires compilation and installation. You may need to specify the
+locations of MySQL and MySQL++ in the GNUMakefile in the api directory.
 
 =============
 EXAMPLE DATA
