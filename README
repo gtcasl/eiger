@@ -14,9 +14,8 @@ FOLDER LAYOUT
 ./database		- MySQL schema for Eiger database
 ./documentation - Documentation describing the implementation of Eiger
 ./eiger			- Eiger performance modeling framework
-./elwperf		- Sandia's Fortran and C/C++ macro interface for common profiling tasks
+./lwperf		- Sandia's Fortran and C/C++ macro interface for common profiling tasks
 ./examples		- Examples of basic modeling functionality
-./ocelot-trace	- GPU Ocelot trace generators with Eiger interface
 ./tests         - Simple tests ensuring correct installation of Eiger 
 
 
@@ -69,4 +68,12 @@ EXAMPLE DATA
 Several sets of example data reside in the ./examples subdirectory. This data was used 
 for different publications and may or may not retain their functionality as Eiger
 is developed.
+
+=============
+LWPERF
+=============
+Lwperf is a lightweight C/C++/Fortran profiling tool that allows for dumping of
+output files either to CSV, Eiger database, or serialization format for later
+injection into an Eiger database. Please see the documentation in the lwperf
+directory for more information.
 
