@@ -38,8 +38,12 @@
 #define PERFSTOP8(X, a,b,c,d,e,f,g,h )
 #define PERFSTOP9(X, a,b,c,d,e,f,g,h,i )
 
-#define DP(v)
-#define IP(v)
+#define DR(v)
+#define DD(v)
+#define DN(v)
+#define IR(v)
+#define ID(v)
+#define IN(v)
 
 #else
 !! // no PERF_DISABLE defined
@@ -63,11 +67,11 @@
 ! E.g. PERFLOG(site1,IP(param1))
 ! @param X name of timer location; must be unique in application and follow
 !the rules of C enum members. For sanity, should be < 32 char long.
-!@param ... IP(name) or DP(name) for int/double log data names .
+!@param ... I*(name) or D*(name) for int/double log data names .
 ! example: PERFLOG3(SomeLoopNest,IP(maxk),IP(maxj),DP(rtol))
 ! where maxk, maxj, and rtol are the names to appear in the log.
 ! the values (the variables they come from) are given in the same order
-! and IP or DP macro in the PERFSTOP# call.
+! and I* or D* macro in the PERFSTOP# call.
 !
 ! These macros are numbered by arg count because fortran preprocessing
 ! in some compilers does not support macro __VA_ARGS__.
@@ -87,7 +91,7 @@
 
 !/* Compute perf counters and record values. USER values should already be computed.
 ! VARARGS list should be same as to PERFLOG, e.g. PERFSTOP(site1,IP(param1_value),...)
-! but here the values are given to IP()/DP() rather than their names.
+! but here the values are given to I*()/D*() rather than their names.
 ! example: PERFSTOP3(SomeLoopNest,IP(nk),IP(nj),DP(max_relative_error))
 !*/
 #define PERFSTOP1(X, a ) call lwperf_stop(PerfPaste(lwperf_,X)); call PerfPaste(lwperf_save_,X)( a ) 
@@ -100,7 +104,7 @@
 #define PERFSTOP8(X, a,b,c,d,e,f,g,h ) call PERF_stop(PerfPaste(lwperf_,X)); call PerfPaste(lwperf_save_,X)( a,b,c,d,e,f,g,h ) 
 #define PERFSTOP9(X, a,b,c,d,e,f,g,h,i ) call lwperf_stop(PerfPaste(lwperf_,X)); call PerfPaste(lwperf_save_,X)( a,b,c,d,e,f,g,h,i ) 
 
-! DP & IP macros are used at PERFSTOP to store values.
+! D* & I* macros are used at PERFSTOP to store values.
 ! Their appearance in PERFLOG (which must match PERFSTOP)
 ! is preprocessed by means other than the preprocessor into 
 ! properly typed initialization calls as needed.
@@ -109,10 +113,12 @@
 ! is just a poor proxy for some integer iteration count(s) that ought 
 ! to be logged directly.
 
-!// double precision number (measured time for example) not caught by default perf counters
-#define DP(v) v
-!// integer parameters, assumed to be deterministic in eiger terminology
-#define IP(v) v
+#define DR(v) v
+#define DD(v) v
+#define DN(v) v
+#define IR(v) v
+#define ID(v) v
+#define IN(v) v
 
 #endif
  ! // use csv or eiger

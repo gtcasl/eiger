@@ -118,8 +118,12 @@ public:
 #define PERFLOG(X, Y, ...)
 #define PERFSTART(X)
 #define PERFSTOP(X, ...) 
-#define DP(v)
-#define IP(v)
+#define DR(v)
+#define DD(v)
+#define DN(v)
+#define IR(v)
+#define ID(v)
+#define IN(v)
 
 #else // no PERF_DISABLE defined
 #ifndef PERF
@@ -142,14 +146,14 @@ public:
  E.g. PERFLOG(site1,IP(param1))
  @param X name of timer location; must be unique in application and follow
 the rules of C enum members.
-  @param ... IP(name) or DP(name) for int/double log data names .
+  @param ... I*(name) or D*(name) for int/double log data names .
 */
 #define PERFLOG(X, ...) \
   csvformatter * log##X = Perf::Log(lwperf_##X, #X, _USE_LS); log##X->start()
 
 /** Compute perf counters and record values. USER values should already be computed.
  VARARGS list should be same as to PERFLOG, e.g. PERFSTOP(site1,IP(param1_value),...)
-but here the values are given to IP()/DP() rather than their names.
+but here the values are given to I*()/D*() rather than their names.
 */
 #define PERFSTOP(X, ...) \
    { log##X->stop();  csvformatter *tmpcf = log##X;  __VA_ARGS__ ; } log##X->nextrow()
@@ -161,8 +165,12 @@ but here the values are given to IP()/DP() rather than their names.
 #define PERFSTART(X) \
   log##X->start()
 
-#define DP(v) tmpcf->put(v)
-#define IP(v) tmpcf->put(v)
+#define DR(v) tmpcf->put(v)
+#define DD(v) tmpcf->put(v)
+#define DN(v) tmpcf->put(v)
+#define IR(v) tmpcf->put(v)
+#define ID(v) tmpcf->put(v)
+#define IN(v) tmpcf->put(v)
 
 #endif // PERF
 

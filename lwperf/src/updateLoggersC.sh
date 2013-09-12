@@ -15,10 +15,12 @@ echo "   updating CSVInitFuncs.h"
 grep -h PERFLOG $cfiles | \
 sed -e 's/[ \t]//g' \
  -e 's/.*PERFLOG(\(\w*\)[ ,]*/\tvoid init\1(csvformatter *c){/g' \
- -e 's/DP(\(\w*\)),*/ c->addCol("\1",D);/g'  \
- -e 's/IP(\(\w*\)),*/ c->addCol("\1",I);/g' \
- -e 's/LP(\(\w*\)),*/ c->addCol("\1",L);/g' \
- -e 's/UP(\(\w*\)),*/ c->addCol("\1",U);/g' \
+ -e 's/DR(\(\w*\)),*/ c->addCol("\1",DR);/g'  \
+ -e 's/DD(\(\w*\)),*/ c->addCol("\1",DD);/g' \
+ -e 's/DN(\(\w*\)),*/ c->addCol("\1",DN);/g' \
+ -e 's/IR(\(\w*\)),*/ c->addCol("\1",IR);/g' \
+ -e 's/ID(\(\w*\)),*/ c->addCol("\1",ID);/g' \
+ -e 's/IN(\(\w*\)),*/ c->addCol("\1",IN);/g' \
  -e 's/);$/ }/' > CSVInitFuncs.h
 echo $ctagline >> CSVInitFuncs.h
 
@@ -26,10 +28,12 @@ echo "   updating EigerInitFuncs.h"
 grep -h PERFLOG $cfiles | \
 sed -e 's/[ \t]//g' \
  -e 's/.*PERFLOG(\(\w*\)[ ,]*/\tvoid init\1(eigerformatter *c){/g' \
- -e 's/DP(\(\w*\)),*/ c->addCol("\1",D);/g' \
- -e 's/IP(\(\w*\)),*/ c->addCol("\1",I);/g' \
- -e 's/LP(\(\w*\)),*/ c->addCol("\1",L);/g' \
- -e 's/UP(\(\w*\)),*/ c->addCol("\1",U);/g' \
+ -e 's/DR(\(\w*\)),*/ c->addCol("\1",DR);/g'  \
+ -e 's/DD(\(\w*\)),*/ c->addCol("\1",DD);/g' \
+ -e 's/DN(\(\w*\)),*/ c->addCol("\1",DN);/g' \
+ -e 's/IR(\(\w*\)),*/ c->addCol("\1",IR);/g' \
+ -e 's/ID(\(\w*\)),*/ c->addCol("\1",ID);/g' \
+ -e 's/IN(\(\w*\)),*/ c->addCol("\1",IN);/g' \
  -e 's/);$/ }/' > EigerInitFuncs.h
 echo $ctagline >> EigerInitFuncs.h
 

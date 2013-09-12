@@ -77,7 +77,7 @@ From a molecular dynamics example, with a variable work load where nlocal is kno
 \begin{verbatim}
   PERFDECL(int nneigh=0;); // counter used only when profiling
   // site Tenergy, log parameter names nlocal, nneigh
-  PERFLOG(Tenergy, IP(nlocal),IP(nneigh)); 
+  PERFLOG(Tenergy, ID(nlocal),ID(nneigh)); 
   for (int i = 0; i < nlocal; i++) { // outer loop
     ... // fixed work calculating, in part, data_dependent_condition
     if ( data_dependent_condition) {
@@ -87,12 +87,25 @@ From a molecular dynamics example, with a variable work load where nlocal is kno
       }
     }
   }
-  PERFSTOP(Tenergy, IP(atom.nlocal),IP(nneigh));
+  PERFSTOP(Tenergy, ID(atom.nlocal),ID(nneigh));
 \end{verbatim}
 
 At the end of the site, PERFSTOP computes the elapsed performance measures (at minimum, wallclock) and these values are logged along with the values passed to the slots defined in the matching PERFLOG statement. In this case the value of nlocal comes from data named atom.nlocal. The data-dependent nneigh parameter is declared and updated only when lwperf is enabled (through use of PERFDECL).
 
-The macros IP or DP must be used on each parameter being recorded at the PERFLOG/PERFSTOP sites, or incorrect code will be generated. The generator scripts need IP/DP to detect the argument types. In the event of a macro or function name conflict with names IP, DP, these macros can be renamed if all the affected lwperf headers and generator scripts are correspondingly updated.
+The metric macros must be used on each parameter being recorded at the PERFLOG/PERFSTOP sites, or incorrect code will be generated. The generator scripts need these to detect the argument types. In the event of a macro or function name conflict, these macros can be renamed if all the affected lwperf headers and generator scripts are correspondingly updated.
+
+There are several different parameter macros, as listed in the following table.
+
+\begin{tabular}{ l | c | r }
+    Name & Variable Type & Metric Type \\
+    \hline 
+    IR & int & RESULT \\
+    DR & double & RESULT \\
+    ID & int & DETERMINISTIC \\
+    DD & double & DETERMINISTIC \\
+    IN & int & NONDETERMINISTIC \\
+    DN & double & NONDETERMINISTIC \\
+\end{tabular}
 
 \subsection{Performance counters}
 The performance measures captured are defined in csvformatter.h:DEFAULT\_PERFCTRS, with supporting definitions and computations required for each in the private data of csvformatter and the start/stop member functions. These are easily extended by the demanding user. At present, support for hardware performance counters is not included as it would add considerable dependency and portability problems. The enterprising user may tailor lwperf to collect hardware counters.
@@ -157,11 +170,11 @@ int main(){
   }
   printf("n = %d\n", n);
 
-  PERFLOG(sub1,IP(n)) ;
-  PERFLOG(sub2,IP(nx),DP(dp));
+  PERFLOG(sub1,ID(n)) ;
+  PERFLOG(sub2,ID(nx),DD(dp));
   sub1(x);
-  PERFSTOP(sub2,IP(nx),DP(dp));
-  PERFSTOP(sub1,IP(n));
+  PERFSTOP(sub2,ID(nx),DD(dp));
+  PERFSTOP(sub1,ID(n));
   PERF_FINAL;
   return 0;
 }
@@ -235,11 +248,11 @@ The application code changes are similar to those for C/C++, inserting macros wh
     end if
     call MPI_Bcast(n,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr);
 
-    PERFLOG1(sub_1,IP(n)) 
-    PERFLOG2(sub_2,IP(nx),DP(dp))
+    PERFLOG1(sub_1,ID(n)) 
+    PERFLOG2(sub_2,ID(nx),DD(dp))
     call sub1(x)
-    PERFSTOP2(sub_2,IP(nx),DP(dp))
-    PERFSTOP1(sub_1,IP(n))
+    PERFSTOP2(sub_2,ID(nx),DD(dp))
+    PERFSTOP1(sub_1,ID(n))
     PERF_FINAL
     call MPI_FINALIZE()
   end program main

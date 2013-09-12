@@ -37,8 +37,12 @@ enum CLocation {
 #define PERFLOG(X, ... )
 #define PERFSTOP(X, ... ) 
 
-#define DP(v)
-#define IP(v)
+#define DR(v)
+#define DD(v)
+#define DN(v)
+#define IR(v)
+#define ID(v)
+#define IN(v)
 
 #else
 // _USE_CSV defined
@@ -59,7 +63,7 @@ enum CLocation {
  E.g. PERFLOG(site1,IP(param1))
  @param X name of timer location; must be unique in application and follow
 the rules of C enum member names.
-@param ... IP(name) or DP(name) for int/double log data names .
+@param ... I*(name) or D*(name) for int/double log data names .
 */
 #define PERFLOG(X, ... ) lwperf_log(lwperf_ ## X)
 
@@ -68,25 +72,27 @@ the rules of C enum member names.
 
 /* Compute perf counters and record values. USER values should already be computed.
  VARARGS list should be same as to PERFLOG, e.g. PERFSTOP(site1,IP(param1_value),...)
- but here the values are given to IP()/DP() rather than their names.
- example: PERFSTOP(SomeLoopNest,IP(nk),IP(nj),DP(max_relative_error))
+ but here the values are given to I*()/D*() rather than their names.
+ example: PERFSTOP(SomeLoopNest,IP(nk),ID(nj),DR(max_relative_error))
 */
 #define PERFSTOP(X, ... ) lwperf_stop(lwperf_ ## X); lwperf_save_##X( __VA_ARGS__ ) 
 
 /*
- DP & IP macros are used at PERFSTOP to store values.
+ D* & I* macros are used at PERFSTOP to store values.
  Their appearance in PERFLOG (which must match PERFSTOP)
  is preprocessed by means other than the preprocessor into 
  properly typed initialization calls as needed.
- Typically, application-level code uses only IP to name integer inputs
- conceivably, a stopping tolerance could be used with DP, but such use
+ Typically, application-level code uses only I* to name integer inputs
+ conceivably, a stopping tolerance could be used with D*, but such use
  is just a poor proxy for some integer iteration count(s) that ought 
  to be logged directly.
 */
-// double precision number (measured time for example) not caught by default perf counters
-#define DP(v) v
-// integer parameters, assumed to be deterministic in eiger terminology
-#define IP(v) v
+#define DR(v) v
+#define DD(v) v
+#define DN(v) v
+#define IR(v) v
+#define ID(v) v
+#define IN(v) v
 
 #endif // not PERF_DISABLE
 
