@@ -98,20 +98,16 @@ public:
 		int j = erow.size();
 //std::cout << "addCol j="<< j<< " label= " << label << std::endl;
 		switch (htype.at(j)) {
-		case D:
-		case F:
+		case DR:
+		case IR:
 			erow.push_back(new eiger::Metric(eiger::RESULT, slabel, slabel));
 			break;
-		case I:
-		case U:
-		case L:
-		case PD:
-		case PF:
+		case DD:
+		case ID:
 			erow.push_back(new eiger::Metric(eiger::DETERMINISTIC, slabel, slabel));
 			break;
-		case NL:
-		case NI:
-		case NU:
+		case DN:
+		case IN:
 			erow.push_back(new eiger::Metric(eiger::NONDETERMINISTIC, slabel, slabel));
 			break;
 		default:
@@ -146,31 +142,18 @@ public:
 		assert(htype.size() == len && 0 != "eigerformatter::nextrow called with confused htype");
 		for (std::vector<std::string>::size_type j = 0; j < len; j++) {
 			switch (htype.at(j)) {
-			case D: // fallthru
-			case F: // fallthru
-			case NI: // fallthru
-			case NL: // fallthru
-			case NU:
+			case DR: // fallthru
+			case DN: // fallthru
+			case IR: // fallthru
+			case IN: // fallthru
 				break;
-			case I:
+			case ID:
 				dsbuf << "_" << row.at(j).i;
 				ddbuf << " " << head.at(j) << "=" <<row.at(j).i;
 				break;
-			case U:
-				dsbuf << "_" << row.at(j).u;
-				ddbuf << " " << head.at(j)<<  "=" <<row.at(j).u;
-				break;
-			case L:
-				dsbuf << "_" << row.at(j).j;
-				ddbuf << " " << head.at(j)<<  "=" <<row.at(j).j;
-				break;
-			case PD:
+			case DD:
 				dsbuf << "_" << row.at(j).d;
 				ddbuf << " " << head.at(j)<<  "=" <<row.at(j).d;
-				break;
-			case PF:
-				dsbuf << "_" << row.at(j).f;
-				ddbuf << " " << head.at(j)<<  "=" <<row.at(j).f;
 				break;
 			default:
 				throw "unhandled htype in nextrow";
@@ -193,60 +176,36 @@ public:
 		for (std::vector<std::string>::size_type j = 0; j < len; j++) {
 			eiger::MetricID mid = (erow.at(j))->getID();
 			switch (htype.at(j)) {
-			case PD: {
+			case DD: {
 				eiger::DeterministicMetric dmD(dsid, mid, row.at(j).d);
 				dmD.commit();
 				break;
 				}
-			case PF: {
-				eiger::DeterministicMetric dmF(dsid, mid, row.at(j).f);
-				dmF.commit();
-				break;
-				}
-			case D: {
+			case DN: {
 				eiger::NondeterministicMetric ndmD(eid, mid, row.at(j).d);
 				ndmD.commit();
 				break;
 				}
-			case F: {
-				eiger::NondeterministicMetric ndmD(eid, mid, row.at(j).f);
-				ndmD.commit();
+			case DR: {
+				eiger::NondeterministicMetric rdmD(eid, mid, row.at(j).d);
+				rdmD.commit();
 				break;
 				}
-			case NI:
+			case IN:
 				{
 				eiger::NondeterministicMetric ndmI(eid, mid, (double)row.at(j).i);
 				ndmI.commit();
 				break;
 				}
-			case NU:
-				{
-				eiger::NondeterministicMetric ndmU(eid, mid, (double)row.at(j).u);
-				ndmU.commit();
-				break;
-				}
-			case NL:
-				{
-				eiger::NondeterministicMetric ndmL(eid, mid, (double)row.at(j).j);
-				ndmL.commit();
-				break;
-				}
-			case I:
+			case ID:
 				{
 				eiger::DeterministicMetric dmI(dsid, mid, (double)row.at(j).i);
 				dmI.commit();
 				break;
 				}
-			case U:
-				{
-				eiger::DeterministicMetric dmU(dsid, mid, (double)row.at(j).u);
-				dmU.commit();
-				break;
-				}
-			case L:
-				{
-				eiger::DeterministicMetric dmL(dsid, mid, (double)row.at(j).j);
-				dmL.commit();
+			case IR: {
+				eiger::NondeterministicMetric rdmI(eid, mid, (double)row.at(j).d);
+				rdmI.commit();
 				break;
 				}
 			default:

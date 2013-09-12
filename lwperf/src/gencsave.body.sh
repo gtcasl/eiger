@@ -3,9 +3,9 @@
 
 site=$1
 shift
-args=`echo $* | sed -e 's/IP(/ int /g' -e 's/DP(/double /g' -e 's/)/,/g' -e 's/,$//g'`
-puts=`echo $* | sed -e 's/IP(\(\w*\))/ log->put(\1);\n/g' \
- -e 's/DP(\(\w*\))/ log->put(\1);\n/g'`
+args=`echo $* | sed -e 's/IR(/ int /g' -e 's/DR(/double /g' -e 's/ID(/ int /g' -e 's/DD(/double /g' -e 's/IN(/ int /g' -e 's/DN(/double /g' -e 's/)/,/g' -e 's/,$//g'`
+puts=`echo $* | sed -e 's/IR(\(\w*\))/ log->put(\1);\n/g' -e 's/ID(\(\w*\))/ log->put(\1);\n/g' -e 's/IN(\(\w*\))/ log->put(\1);\n/g' \
+ -e 's/DR(\(\w*\))/ log->put(\1);\n/g' -e 's/DD(\(\w*\))/ log->put(\1);\n/g' -e 's/DN(\(\w*\))/ log->put(\1);\n/g'`
 
 echo "void lwperf_save_$site($args) {
  PERFFORMATTER *log = PERF::Log($site, \"$site\",_USE_LS);

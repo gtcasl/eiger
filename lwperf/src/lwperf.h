@@ -20,9 +20,12 @@
 #define PERFLOG(X, Y, ...)
 #define PERFSTART(X)
 #define PERFSTOP(X, ...) 
+#define DR(v)
 #define DD(v)
-#define DP(v)
-#define IP(v)
+#define DN(v)
+#define IR(v)
+#define ID(v)
+#define IN(v)
 #endif
 
 #endif // perf_h

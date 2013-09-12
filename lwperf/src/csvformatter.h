@@ -12,18 +12,12 @@
 
 /// only int and double data kinds are supported currently.
 enum datakind {
-// normal usage fp types are measuremnents and int types are inputs
-	D=0, // double nonparametric
-	F=4, // float nonparametric
-	I=1, // int parametric
-	U=2, // uint parametric
-	L=3, // long parametric
-// the 'nonusual' case have 2 letter names; fp types are parametric and int types are non parametric
-	PD=10, // parametric double;
-	PF=14, // parametric float
-	NI=11, // nonparametric int (not used in dataset name construction)
-	NU=12, // nonparametric unsigned
-	NL=13, // nonparametric long
+	DR=0, // double result
+	DD=4, // double deterministic
+	DN=1, // double nondeterministic
+	IR=2, // int result
+	ID=3, // int deterministic
+	IN=10, // int nondeterministic;
 };
 
 union data {
@@ -83,17 +77,11 @@ public:
 // nvcsw is how many time we yielded to the kernel, normally 0.
 // nivcsw is how many time we were interrupted by scheduler, normally 0.
 #define DEFAULT_PERFCTRS \
-		addCol("delmaxrss",NL); \
-		addCol("minflt",NL); \
-		addCol("majflt",NL); \
-		addCol("nvcsw",NL); \
-		addCol("nivcsw",NL); \
-		addCol("appclock", D) ; \
-		addCol("MPIrank", NI); \
-		addCol("MPIsize", I); \
-		addCol("stime",D); \
-		addCol("utime",D); \
-		addCol("wtime", D); \
+		addCol("MPIrank", IN); \
+		addCol("MPIsize", ID); \
+		addCol("stime",DR); \
+		addCol("utime",DR); \
+		addCol("wtime", DR); \
 
 		usetext = (filename != "");
 		if (defmetrics) { 
@@ -135,7 +123,7 @@ public:
 	// accumulate data until row complete
 	void put(double d) {
 		// fprintf(stderr,"put: %g\n",d);
-		if (htype[row.size()] == D || htype[row.size()] == PD) {
+		if (htype[row.size()] == DR || htype[row.size()] == DD || htype[row.size()] == DN) {
 			union data ud;
 			ud.d = d;
 			row.push_back(ud);
@@ -143,50 +131,16 @@ public:
 		}
 		assert(0&&"csvformatter::put with double called on non-double column");
 	}
-	// accumulate data until row complete
-	void put(float f) {
-		// fprintf(stderr,"put: %g\n",d);
-		if (htype[row.size()] == F || htype[row.size()] == PF) {
-			union data ud;
-			ud.f = f;
-			row.push_back(ud);
-			return;
-		}
-		assert(0&&"csvformatter::put with float called on non-float column");
-	}
 
 	// accumulate data until row complete
 	void put(int i) {
-		if (htype[row.size()] == I || htype[row.size()] == NI) {
+		if (htype[row.size()] == IR || htype[row.size()] == ID || htype[row.size()] == IN) {
 			union data ud;
 			ud.i = i;
 			row.push_back(ud);
 			return;
 		}
 		assert(0&&"csvformatter::put with int called on non-int column");
-	}
-
-	// accumulate data until row complete
-	void put(long j) {
-		if (htype[row.size()] == L || htype[row.size()] == NL) {
-			union data ud;
-			ud.j = j;
-			row.push_back(ud);
-			return;
-		}
-		assert(0&&"csvformatter::put with long called on non-long column");
-	}
-
-	// accumulate data until row complete
-	void put(unsigned u) {
-		// fprintf(stderr,"put: %u\n",u);
-		if (htype[row.size()] == U || htype[row.size()] == NU) {
-			union data ud;
-			ud.u = u;
-			row.push_back(ud);
-			return;
-		}
-		assert(0&&"csvformatter::put with unsigned called on non-unsigned column");
 	}
 
 	// dump existing row data if complete
@@ -196,39 +150,20 @@ public:
 		assert(row.size() == len && 0 != "csvformatter::nextrow called with incomplete data");
 		for (std::vector<std::string>::size_type j = 0; j < len; j++) {
 			switch (htype[j]) {
-			case F: // fallthru
-			case PF:
-				if (f) fprintf(f,"%.9f",row[j].f);
-				if (screen) {
-					fprintf(stdout,"%.9f",row[j].f);
-				}
-				break;
-			case D: // fallthru
-			case PD:
+			case DR: // fallthru
+			case DD: // fallthru
+			case DN:
 				if (f) fprintf(f,"%.18g",row[j].d);
 				if (screen) {
 					fprintf(stdout,"%.18g",row[j].d);
 				}
 				break;
-			case NI: // fallthru
-			case I:
+			case IR: // fallthru
+			case ID: // fallthru
+			case IN:
 				if (f) fprintf(f,"%d",row[j].i);
 				if (screen) {
 					fprintf(stdout,"%d",row[j].i);
-				}
-				break;
-			case L: // fallthru
-			case NL:
-				if (f) fprintf(f,"%ld",row[j].j);
-				if (screen) {
-					fprintf(stdout,"%ld",row[j].j);
-				}
-				break;
-			case NU: // fallthru
-			case U:
-				if (f) fprintf(f,"%u",row[j].i);
-				if (screen) {
-					fprintf(stdout,"%u",row[j].i);
 				}
 				break;
 			default:

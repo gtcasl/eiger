@@ -19,12 +19,6 @@ csvformatter::stop() {
 	double dt = stamp - t0;
 	struct diffrusage_t d = diffrusage(&u1, &u0); // compute deltas from t0 to now.
 	// keep these in order sync with DEFAAULT_PERFCTRS  macro
-	put(d.maxrss); 
-	put(d.minflt); 
-	put(d.majflt); 
-	put(d.nvcsw); 
-	put(d.nivcsw);
-	put(stamp);
 	put(mpiRank);
 	put(mpiSize);
 	put(d.stime); 
