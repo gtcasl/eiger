@@ -132,7 +132,7 @@ def PlotPCsPerMetric(pcs, metrics, title=""):
     for i in range(cols):
         rects[i] = plt.bar([i*w+x*(cols+1)*w for x in xx], [pcs[x,i] for x in xx], width=w, color=colors[i], label="PC " + str(i))
     plt.legend(loc='upper right')
-    plt.xticks([x * ((cols+1) * w) + cols*w/2.0 for x in range(rows)], [x.name for x in metrics], rotation='90')
+    plt.xticks([x * ((cols+1) * w) + cols*w/2.0 for x in range(rows)], metrics, rotation='90')
     plt.title(title)
     plt.show()
 
@@ -164,7 +164,7 @@ def PlotMetricsPerPC(pcs, metrics, title=""):
     rects = range(rows) #rows = N metrics
     xx = range(cols)    #cols = P principal components
     for i in range(rows):
-        rects[i] = plt.bar([i*w+x*(rows+1)*w for x in xx], [pcs[i,x] for x in xx], width=w, color=colors[i], label=metrics[i].name)
+        rects[i] = plt.bar([i*w+x*(rows+1)*w for x in xx], [pcs[i,x] for x in xx], width=w, color=colors[i], label=metrics[i])
     plt.legend(loc='upper right')
     plt.xticks([rows*w/2.0 + x*((rows+1)*w) for x in xx], ["PC " + str(x) for x in xx], rotation='90')
     plt.title(title)
