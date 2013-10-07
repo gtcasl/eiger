@@ -14,9 +14,8 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import math
-import MySQLdb
 
-from eiger import API, ClusterAnalysis, PCA, PerformanceModel
+from eiger import database, ClusterAnalysis, PCA, LinearRegression
 
 class Eiger:
     """
@@ -28,135 +27,127 @@ class Eiger:
         """
         self.args = args
 
-    def connect(self):
-        """ Connecting to database """
-        args = self.args
-        params = {}
-        params['username'] = args['database_user']
-        params['password'] = args['database_password']
-        params['dbname'] = args['database_name']
-        params['dblocation'] = args['database_location']
-        print "Connecting to database..."
-        self.d = API.Connect(**params)
-
-    def _fitModels(self):
-        args = self.args
-        self.models = []
-        fullTrainingProfile = self.trainingData.profile
-        fullTrainingPerformance = self.trainingData.performance
-        fullUsedTrials = self.trainingData.usedTrials
-        for cluster in self.clusters:
-
-            self.trainingData.profile = fullTrainingProfile[cluster,:]
-            self.trainingData.performance = fullTrainingPerformance[cluster,:]
-            self.trainingData.usedTrials = [fullUsedTrials[i] for i in cluster]
-
-            params = {}
-            params['applicationVariance'] = args['application_pc_variance']
-            params['maxApplicationComponents'] = args['max_application_pcs']
-            params['machineVariance'] = args['machine_pc_variance']
-            params['maxMachineComponents'] = args['max_machine_pcs']
-            params['rotateApplication'] = args['rotate_application_pcs']
-            params['rotateMachine'] = args['rotate_machine_pcs']
-            params['maxM'] = args['mars_max_functions']
-            params['max_interactions'] = args['mars_max_interactions']
-            params['regressionType'] = args['regression_type']
-            params['threshold'] = args['threshold']
-            params['k'] = args['nearest_neighbors']
-
-            model = PerformanceModel.PerformanceModel()
-            model.train(self.trainingData, **params)
-            self.models.append(model)
-        self.trainingData.profile = fullTrainingProfile
-        self.trainingData.performance = fullTrainingPerformance
-        self.fullUsedTrials = self.trainingData.usedTrials
-
-    def trainModels(self):
+    def run(self):
         """ Training new performance model(s) """
 
         print "Training model(s)..."
         args = self.args
-        self.trainingData = API.DataCollection()
-        params = {}
-        params['datasets'] = args['training_dataset_ids']
-        params['metricset'] = args['metric_ids']
-        params['trialset'] = args['training_trial_ids']
-        params['appset'] = args['training_application_ids']
-        params['machineset'] = args['training_machine_ids']
-        self.trainingData.fromDatabase(args['training_datacollection_id'], self.d, **params)
+        training_DC = database.DataCollection(args['training_datacollection'], 
+                                              db=args['db'], 
+                                              user=args['user'], 
+                                              passwd=args['passwd'],
+                                              host=args['host'])
+        metric_ids = training_DC.metricIndexByType('deterministic', 
+                                                   'nondeterministic')
+        metric_names = [training_DC.metrics[id][0] for id in metric_ids]
+        training_profile = training_DC.profile[:,metric_ids]
+        for idx,metric in enumerate(training_DC.metrics):
+            if(metric[0] == args['performance_metric']):
+                performance_metric_id = idx
+        training_performance = training_DC.profile[:,performance_metric_id]
 
-        params = {}
-        params['maxIterations'] = args['max_cluster_iterations']
-        params['k'] = args['clusters']
-        self.kmeans = ClusterAnalysis.KMeans(self.trainingData.profile,**params)
-        self.clusters = self.kmeans.kmeans()
-        self._fitModels()
+        #pca
+        training_pca = PCA.PCA(training_profile)
+        rotation_matrix = training_pca.reduced(args['pca_variance'], 
+                                               args['pca_components'])[0]
+        rotated_training_profile = np.dot(training_profile, rotation_matrix)
 
-    def experiment(self):
-        """ Run experiment against trained model(s) """
-        if('experiment_datacollection_id' not in self.args or \
-           self.args['experiment_datacollection_id'] is None):
-            return
+        #kmeans
+        kmeans = ClusterAnalysis.KMeans(rotated_training_profile, k=args['clusters'])
+        clusters = kmeans.kmeans()
 
-        print "Running experiments..."
-        args = self.args
-        params = {}
-        params['trialset'] = args['experiment_trial_ids']
-        params['appset'] = args['experiment_application_ids']
-        params['machineset'] = args['experiment_machine_ids']
-        params['metricset'] = args['metric_ids']
-        self.experimentData = API.DataCollection()
-        self.experimentData.fromDatabase(args['experiment_datacollection_id'], self.d, **params)
-        try:
-            closest = self.kmeans.closestCluster(self.experimentData.profile)
-        except AttributeError:
-            # kmeans doesn't exist, so no clusters
-            closest = [0 for x in self.experimentData.usedTrials]
-        self.prediction = []
-        self.actual = np.matrix([[]]).T
-        for i,model in enumerate(self.models):
-            trials = [self.experimentData.usedTrials[trial] for trial in range(len(self.experimentData.usedTrials)) \
-                     if closest[trial]==i]
-            if(len(trials) == 0):
-                continue
-            params = {}
-            params['trialset'] = trials
-            params['metricset'] = args['metric_ids']
-            clusterExperimentData = API.DataCollection()
-            clusterExperimentData.fromDatabase(args['experiment_datacollection_id'], self.d, **params)
+        #for testing fit
+        prediction = np.empty_like(training_performance)
 
-            experiment = clusterExperimentData.project(model.applicationPCs, model.machinePCs)
-            self.prediction += model.predict(experiment).tolist()
-            self.actual = np.vstack((self.actual,clusterExperimentData.performance))
-        
-        if(args['show_prediction_statistics']):
-            act = [a[0,0] for a in self.actual]
-            mse = sum([(a-p)**2 for a,p in zip(act, self.prediction)]) / len(act)
-            rmse = math.sqrt(mse)
-            mape = 100 * sum([abs((a-p)/a) for a,p in zip(act,self.prediction)]) / len(act)
+        #for dumping to file
+        if(self.args['output'] is not None):
+            fid = open(self.args['output'], 'w')
 
-            print "Number of experiment trials: %s" % len(act)
-            print "Mean Average Percent Error: %s" % mape
-            print "Mean Squared Error: %s" % mse
-            print "Root Mean Squared Error: %s" % rmse
+        for i,cluster in enumerate(clusters):
+            cluster_profile = rotated_training_profile[cluster,:]
+            cluster_performance = training_performance[cluster,:]
+            regression = LinearRegression.LinearRegression(cluster_profile,
+                                                           cluster_performance)
+            pool = regression.powerLadder(cluster_profile.shape)
+            (model, r_squared, attempts) = regression.select(pool, 
+                                                    threshold=args['threshold'])
+            
+            # dump model to file
+            fid.write('Model %s\n' % i)
+            fid.write("[%s,%s](" % rotation_matrix.shape)
+            for row in range(rotation_matrix.shape[0]):
+                fid.write("(")
+                for col in range(rotation_matrix.shape[1]):
+                    fid.write("%s," % rotation_matrix[row,col])
+                fid.write("),")
+            fid.write(")\n")
+            model.toFile(fid)
+            for name in metric_names:
+                fid.write("%s\n" % name)
 
-    def _figure(self):
+            print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
+           
+           # We usually want to make sure that our model fits well
+            if args['test_fit']:
+                prediction[cluster,:] = np.array([model.poll(x) 
+                                                  for x in cluster_profile])
+       
+        # close created model file
+        if(self.args['output'] is not None):
+            fid.close()
+
+        print "Visualizing..."
+        if(args['plot_scree']):
+            PCA.PlotScree(training_pca.loadings, log=False, 
+                              title="PCA Scree Plot")
+        if(args['plot_pcs_per_metric']):
+            PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
+                                 title="PCs Per Metric")
+        if(args['plot_metrics_per_pc']):
+            PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
+                                 title="Metrics Per PC")
+
+        if(args['test_fit']):
+            if(args['plot_performance_bar']):
+                apps = [app[0] for i in range(app[2]) for app in training_DC.apps]
+                self._figure(training_performance, prediction, apps)
+            if(args['plot_performance_line']):
+                self._figureline(training_performance, prediction)
+            if(args['plot_performance_scatter']):
+                self._scatter(training_performance, prediction)
+            if(args['show_prediction_statistics']):
+                mse = sum([(a-p)**2 for a,p in 
+                           zip(training_performance, prediction)]) / \
+                      len(training_performance)
+                rmse = math.sqrt(mse)
+                mape = 100 * sum([abs((a-p)/a) for a,p in 
+                                  zip(training_performance,prediction)]) / \
+                      len(training_performance)
+
+                print "Number of experiment trials: %s" % \
+                    len(training_performance)
+                print "Mean Average Percent Error: %s" % mape
+                print "Mean Squared Error: %s" % mse
+                print "Root Mean Squared Error: %s" % rmse
+
+
+
+
+    def _figure(self, actual, prediction, apps):
+        """ plot actual vs predicted for each trial
+
+        actual - np.array
+        prediction - np.array
+        apps - ["app name"]
+        """
         plt.figure()
         import os.path
-        xx = range(0, len(self.prediction))
+        xx = range(0, len(prediction))
         rects0 = []
         rects1 = []
-        if(len(self.prediction) == 1):
-            rects0 = plt.bar([0,1],[self.prediction[0], 0], .4, color='blue')
-            rects0 = [rects0[0]]
-            rects1 = plt.bar([0.4,1.4], [self.experimentData.performance[0], 0], .4, color='black')
-            rects1 = [rects1[1]]
-        else:
-            foo = [f for f in self.prediction]
-            baz = [f[0] for f in self.actual]
-            rects0 = plt.bar([x for x in xx], foo, 0.4, color='blue')
-            rects1 = plt.bar([x + 0.4 for x in xx], baz, 0.4, color='black')
-        plt.xticks([x + 0.4 for x in xx], [app.name for app in self.experimentData.getApplications()], rotation='90')
+        rects0 = plt.bar([x for x in xx], prediction, 0.4, color='blue')
+        rects1 = plt.bar([x + 0.4 for x in xx], actual, 0.4, color='black')
+        plt.xticks([x + 0.4 for x in xx], apps, rotation='90')
         plt.legend((rects0[0], rects1[0]), ('Predicted', 'Actual'), loc='upper left')
         if args['plot_identifier'] != 'NoName':
             plt.title(args['plot_identifier']+ " Eiger model (blue) and training (red)")
@@ -168,22 +159,14 @@ class Eiger:
         else:
             plt.show()
 
-    def _figureline(self):
+    def _figureline(self, actual, prediction):
         import os.path
         plt.figure()
-        xx = range(0, len(self.prediction))
+        xx = range(0, len(prediction))
         rects0 = []
         rects1 = []
-        if(len(self.prediction) == 1):
-            rects0 = plt.bar([0,1],[self.prediction[0], 0], .4, color='blue')
-            rects0 = [rects0[0]]
-            rects1 = plt.bar([0.4,1.4], [self.experimentData.performance[0], 0], .4, color='black')
-            rects1 = [rects1[1]]
-        else:
-            foo = [f for f in self.prediction]
-            baz = [f[0,0] for f in self.actual]
-            rects0 = plt.plot(baz,'r'+args['plot_line_marker_data'])
-            rects1 = plt.plot(foo,'b'+args['plot_line_marker_pred'])
+        rects0 = plt.plot(actual,'r'+args['plot_line_marker_data'])
+        rects1 = plt.plot(prediction,'b'+args['plot_line_marker_pred'])
 
         if args['plot_identifier'] != 'NoName':
             plt.title(args['plot_identifier']+ " Eiger model (blue,"+args['plot_line_marker_pred']+") and training (red,"+args['plot_line_marker_data']+")")
@@ -198,17 +181,17 @@ class Eiger:
         else:
             plt.show()
 
-    def _scatter(self):
+    def _scatter(self, actual, prediction):
         import os.path
         args = self.args
         plt.figure()
-        plt.plot([x[0,0] for x in self.actual], [y for y in self.prediction], 'b'+args['plot_scatter_marker'])
-        xmin=min(x[0,0] for x in self.actual)
-        xmax=max(x[0,0] for x in self.actual)
-        ymin=min(y for y in self.prediction)
-        ymax=max(y for y in self.prediction)
-        diagxmin=min(math.fabs(x[0,0]) for x in self.actual)
-        diagymin=min(math.fabs(y) for y in self.prediction)
+        plt.plot(actual, prediction, 'b'+args['plot_scatter_marker'])
+        xmin=min(actual)
+        xmax=max(actual)
+        ymin=min(prediction)
+        ymax=max(prediction)
+        diagxmin=min(math.fabs(x) for x in actual)
+        diagymin=min(math.fabs(y) for y in prediction)
         diagpmin=min(diagxmin,diagymin)
         pmin=min(xmin,ymin)
         pmax=max(xmax,ymax)
@@ -241,73 +224,6 @@ class Eiger:
         plt.legend(loc='best')
         plt.show()
         
-
-    def plot(self):
-        """ Visualize model details or performance """
-        print "Visualizing..."
-        args = self.args
-        for i,model in enumerate(self.models):
-            if(args['plot_machine_scree']):
-                PCA.PlotScree(model.machinePCA.loadings, log=False, title="Machine PCA Scree Plot, Cluster %" + str(i))
-            if(args['plot_application_scree']):
-                PCA.PlotScree(model.applicationPCA.loadings, log=False)
-            if(args['plot_machine_pcs_per_metric']):
-                PCA.PlotPCsPerMetric(model.machinePCs, self.trainingData.machineMetrics, title="Machine PCs Per Metric, Cluster " + str(i))
-            if(args['plot_application_pcs_per_metric']):
-                PCA.PlotPCsPerMetric(model.applicationPCs, self.trainingData.applicationMetrics, title="Application PCs Per Metric, Cluster " + str(i))
-            if(args['plot_machine_metrics_per_pc']):
-                PCA.PlotMetricsPerPC(model.machinePCs, self.trainingData.machineMetrics, title="Machine Metrics Per PC, Cluster " + str(i))
-            if(args['plot_application_metrics_per_pc']):
-                PCA.PlotMetricsPerPC(model.applicationPCs, self.trainingData.applicationMetrics, title="Application Metrics Per PC, Cluster " + str(i))
-
-        if(args['plot_performance_bar']):
-            self._figure()
-        if(args['plot_performance_line']):
-            self._figureline()
-        if(args['plot_performance_scatter']):
-            self._scatter()
-        if(args['plot_clustering']):
-            self._plotClustering()
-
-    def run(self):
-
-        try:
-            self.connect()
-
-            # train new model
-            self.trainModels()
-
-            # run tests against trained model
-            self.experiment()
-
-
-            
-
-            # visualize
-            self.plot()
-        except KeyError as e:
-            print "ERROR: Missing parameter %s" % e
-            sys.exit(1)
-
-
-        ###############################
-
-        # TODO: reading and writing models to db
-        """
-        if 'mID' in args:
-            performance = PerformanceModel.PerformanceModel(modelID=args['mID'], db=d)
-        if('commit' in args and args['commit']):
-            performance.commit(d)
-            print "Model ID: %s" % (performance.model.modelID)
-        """
-        # dump model to file
-        if(self.args['output'] is not None):
-            fid = open(self.args['output'], 'w')
-            for i,model in enumerate(self.models):
-                fid.write('Model %s\n' % i)
-                model.toFile(fid)
-            fid.close()
-
 class Main:
     """ Main program to parse arguments from command line"""
     
@@ -321,17 +237,17 @@ class Main:
         """
         CONNECTION ARGUMENTS
         """
-        parser.add_argument('--database-name',
+        parser.add_argument('--db',
                             type=str,
                             help='Name of the database to connect to')
-        parser.add_argument('--database-user',
+        parser.add_argument('--user',
                             type=str,
                             help='Username to connect to the database')
-        parser.add_argument('--database-password',
+        parser.add_argument('--passwd',
                             type=str,
                             default='',
                             help='Password to connect to the database')
-        parser.add_argument('--database-location',
+        parser.add_argument('--host',
                             type=str,
                             default='localhost',
                             help='IP address or hostname of database-hosting computer')
@@ -339,57 +255,20 @@ class Main:
         """
         TRAINING DATA ARGUMENTS
         """
-        parser.add_argument('--training-datacollection-id', '-t',
-                            type=int,
-                            help='ID of training data collection')
-        parser.add_argument('--metric-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given metric IDs are the only ones included in modeling')
-        parser.add_argument('--training-dataset-ids',
+        parser.add_argument('--training-datacollection', '-t',
                             type=str,
-                            nargs='+',
-                            help='If set, given dataset IDs are the only ones included in model training')
-        parser.add_argument('--training-trial-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given trial IDs are the only ones included in model training')
-        parser.add_argument('--training-application-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given application IDs are the only ones included in model training')
-        parser.add_argument('--training-machine-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given machine IDs are the only ones included in model training')
-
-
-        """
-        EXPERIMENT DATA ARGUMENTS
-        """
-        parser.add_argument('--experiment-datacollection-id', '-e',
-                            type=int,
-                            help='ID of experiment data collection')
-        parser.add_argument('--application-dataset-ids',
+                            help='Name training data collection')
+        parser.add_argument('--performance-metric',
                             type=str,
-                            nargs='+',
-                            help='If set, given dataset IDs are the only ones included in experimentation')
-        parser.add_argument('--experiment-trial-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given trial IDs are the only ones included in experimentation')
-        parser.add_argument('--experiment-application-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given application IDs are the only ones included in experiment')
-        parser.add_argument('--experiment-machine-ids',
-                            type=int,
-                            nargs='+',
-                            help='If set, given machine IDs are the only ones included in experiment')
+                            help='Name of the performance metric to predict')
         parser.add_argument('--show-prediction-statistics',
                             action='store_true',
                             default=False,
                             help='If set several statistics will be printed out describing the experimental prediction.')
+        parser.add_argument('--test-fit',
+                            action='store_true',
+                            default=False,
+                            help='If set will test the model fit against the training data.')
 
         """
         PLOTTING ARGUMENTS
@@ -426,30 +305,18 @@ class Main:
                             choices=['.' , ',' , '+' , 'x' , 'o'],
                             default='+',
                             help='Change the marker type for training data lines')
-        parser.add_argument('--plot-machine-scree',
+        parser.add_argument('--plot-scree',
                             action='store_true',
                             default=False,
-                            help='If set, plots the scree graph from the machine PCA')
-        parser.add_argument('--plot-application-scree',
+                            help='If set, plots the scree graph from principal component analysis')
+        parser.add_argument('--plot-pcs-per-metric',
                             action='store_true',
                             default=False,
-                            help='If set, plots the scree graph from the application PCA')
-        parser.add_argument('--plot-machine-pcs-per-metric',
+                            help='If set, plots the breakdown of principal components per metric.')
+        parser.add_argument('--plot-metrics-per-pc',
                             action='store_true',
                             default=False,
-                            help='If set, plots the breakdown of principal components per metric from machine PCA.')
-        parser.add_argument('--plot-application-pcs-per-metric',
-                            action='store_true',
-                            default=False,
-                            help='If set, plots the breakdown of principal components per metric from application PCA.')
-        parser.add_argument('--plot-machine-metrics-per-pc',
-                            action='store_true',
-                            default=False,
-                            help='If set, plots the breakdown of metrics per principal component from machine PCA.')
-        parser.add_argument('--plot-application-metrics-per-pc',
-                            action='store_true',
-                            default=False,
-                            help='If set, plots the breakdown of metrics per principal component from application PCA.')
+                            help='If set, plots the breakdown of metrics per principal component.')
         parser.add_argument('--plot-clustering',
                             action='store_true',
                             default=False,
@@ -471,70 +338,25 @@ class Main:
         """
         MODEL CONSTRUCTION ARGUMENTS
         """
-        parser.add_argument('--model-id',
-                            type=int,
-                            help='Model ID to be retrieved from the database')
         parser.add_argument('--output', '-o',
                             type=str,
                             help='Filename where this model should be saved to')
-        parser.add_argument('--commit',
-                            action='store_true',
-                            default=False,
-                            help='If set, commits this model to the database')
-        parser.add_argument('--application-pc-variance',
+        parser.add_argument('--pca-variance',
                             type=float,
-                            help='Portion of total variance to capture in application PCA out of 1')
-        parser.add_argument('--max-application-pcs',
+                            help='Fraction of total variance to capture in principal component analysis')
+        parser.add_argument('--pca-components',
                             type=int,
-                            help='Maximum number of components to retain from application PCA')
-        parser.add_argument('--rotate-application-pcs',
-                            action='store_true',
-                            default=False,
-                            help='If set, VARIMAX rotation is performed on application principal components')
-        parser.add_argument('--machine-pc-variance',
-                            type=float,
-                            help='Percent of total variance to capture in machine PCA')
-        parser.add_argument('--max-machine-pcs',
-                            type=int,
-                            help='Maximum number of components to retain from machine PCA')
-        parser.add_argument('--rotate-machine-pcs',
-                            action='store_true',
-                            default=False,
-                            help='If set, VARIMAX rotation is performed on machine principal components')
+                            help='Maximum number of components to retain from principal component analysis')
         parser.add_argument('--clusters', '-k',
                             type=int,
                             default=1,
                             help='Number of clusters for kmeans')
-        parser.add_argument('--max-cluster-iterations',
-                            type=int,
-                            help='Maximum number of iterations to use when computing clusters')
-        parser.add_argument('--regression-type', '-r',
-                            type=str,
-                            default='linear',
-                            help='Type of regression: either "linear" or "mars"')
-        parser.add_argument('--mars-max-functions',
-                            type=int,
-                            help='Maximum number of functions allowed in MARS regression')
-        parser.add_argument('--mars-max-interactions', '-I',
-                            type=int,
-                            help='Maximum order of interactions allowed in MARS regression')
         parser.add_argument('--threshold',
                             type=float,
                             help='Cutoff threshold of increase in adjusted R-squared value when adding new predictors to the model')
-        parser.add_argument('--nearest-neighbors',
-                            type=int,
-                            help='number of nearest neighbors for nearest regression')
-        parser.add_argument('--input-filename',
-                            type=str,
-                            default='',
-                            help='Name of file to read parameters from')
         
         
-        
-        args = vars(parser.parse_args())
-        if args['input_filename'] != '':
-            return vars(parser.parse_args(['@' + args['input_filename']]))
-        return args
+        return vars(parser.parse_args())
 
 if __name__ == "__main__":
     
