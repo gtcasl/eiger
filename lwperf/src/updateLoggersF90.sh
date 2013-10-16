@@ -16,12 +16,12 @@ grep -h PERFLOG $ffiles | \
 sed -e 's/[ \t]//g' \
  -e 's/;$//' \
  -e 's/.*PERFLOG[0-9](\(\w*\)[ ,]*/\tvoid init\1(csvformatter *c){/g' \
- -e 's/DR(\(\w*\)),*/ c->addCol("\1",DR);/g'  \
- -e 's/DD(\(\w*\)),*/ c->addCol("\1",DD);/g' \
- -e 's/DN(\(\w*\)),*/ c->addCol("\1",DN);/g' \
- -e 's/IR(\(\w*\)),*/ c->addCol("\1",IR);/g' \
- -e 's/ID(\(\w*\)),*/ c->addCol("\1",ID);/g' \
- -e 's/IN(\(\w*\)),*/ c->addCol("\1",IN);/g' \
+ -e 's/DR(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",DR);/g'  \
+ -e 's/DD(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",DD);/g' \
+ -e 's/DN(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",DN);/g' \
+ -e 's/IR(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",IR);/g' \
+ -e 's/ID(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",ID);/g' \
+ -e 's/IN(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",IN);/g' \
  -e 's/)$/ }/' > CSVInitFuncs.h
 echo $ctagline >> CSVInitFuncs.h
 
@@ -30,12 +30,12 @@ grep -h PERFLOG $ffiles | \
 sed -e 's/[ \t]//g' \
  -e 's/;$//' \
  -e 's/.*PERFLOG[0-9](\(\w*\)[ ,]*/\tvoid init\1(eigerformatter *c){/g' \
- -e 's/DR(\(\w*\)),*/ c->addCol("\1",DR);/g'  \
- -e 's/DD(\(\w*\)),*/ c->addCol("\1",DD);/g' \
- -e 's/DN(\(\w*\)),*/ c->addCol("\1",DN);/g' \
- -e 's/IR(\(\w*\)),*/ c->addCol("\1",IR);/g' \
- -e 's/ID(\(\w*\)),*/ c->addCol("\1",ID);/g' \
- -e 's/IN(\(\w*\)),*/ c->addCol("\1",IN);/g' \
+ -e 's/DR(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",DR);/g'  \
+ -e 's/DD(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",DD);/g' \
+ -e 's/DN(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",DN);/g' \
+ -e 's/IR(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",IR);/g' \
+ -e 's/ID(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",ID);/g' \
+ -e 's/IN(\([A-Za-z0-9.]*\)),*/ c->addCol("\1",IN);/g' \
  -e 's/)$/ }/' > EigerInitFuncs.h
 echo $ctagline >> EigerInitFuncs.h
 
