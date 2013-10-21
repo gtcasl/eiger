@@ -49,8 +49,8 @@ def run(args):
     kmeans = ClusterAnalysis.KMeans(rotated_training_profile, k=args['clusters'])
     clusters = kmeans.kmeans()
 
-    #for testing fit
-    prediction = np.empty_like(training_performance)
+    # reserve a vector for each model created per cluster
+    models = [0] * len(clusters)
 
     with tempfile.TemporaryFile() as modelfile:
         for i,cluster in enumerate(clusters):
@@ -59,7 +59,7 @@ def run(args):
             regression = LinearRegression.LinearRegression(cluster_profile,
                                                            cluster_performance)
             pool = regression.powerLadder(cluster_profile.shape)
-            (model, r_squared, attempts) = regression.select(pool, 
+            (models[i], r_squared, attempts) = regression.select(pool, 
                                                     threshold=args['threshold'])
             
             # dump model to file
@@ -71,16 +71,11 @@ def run(args):
                     modelfile.write("%s," % rotation_matrix[row,col])
                 modelfile.write("),")
             modelfile.write(")\n")
-            model.toFile(modelfile)
+            models[i].toFile(modelfile)
             for name in metric_names:
                 modelfile.write("%s\n" % name)
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
-           
-           # We usually want to make sure that our model fits well
-            if args['test_fit']:
-                prediction[cluster,:] = np.array([model.poll(x) 
-                                                  for x in cluster_profile])
        
         # if we want to save the model file, copy it now
         if(args['output'] is not None):
@@ -98,30 +93,60 @@ def run(args):
                              title="Metrics Per PC")
 
     if(args['test_fit']):
-        if(args['plot_performance_bar']):
-            apps = [app[0] for i in range(app[2]) for app in training_DC.apps]
-            _figure(training_performance, prediction, apps)
-        if(args['plot_performance_line']):
-            _figureline(training_performance, prediction)
-        if(args['plot_performance_scatter']):
-            _scatter(training_performance, prediction)
-        if(args['show_prediction_statistics']):
-            mse = sum([(a-p)**2 for a,p in 
-                       zip(training_performance, prediction)]) / \
-                  len(training_performance)
-            rmse = math.sqrt(mse)
-            mape = 100 * sum([abs((a-p)/a) for a,p in 
-                              zip(training_performance,prediction)]) / \
-                  len(training_performance)
+        _runExperiment(kmeans, models, rotation_matrix, training_DC, args)
+    if(args['experiment_datacollection']):
+        experiment_DC = database.DataCollection(args['experiment_datacollection'], 
+                                                db=args['db'], 
+                                                user=args['user'], 
+                                                passwd=args['passwd'],
+                                                host=args['host'])
+        _runExperiment(kmeans, models, rotation_matrix, experiment_DC, args)
 
-            print "Number of experiment trials: %s" % \
-                len(training_performance)
-            print "Mean Average Percent Error: %s" % mape
-            print "Mean Squared Error: %s" % mse
-            print "Root Mean Squared Error: %s" % rmse
+def _runExperiment(kmeans, models, rotation_matrix, 
+                   experiment_DC, args):
+    expr_metric_ids = experiment_DC.metricIndexByType('deterministic', 
+                                                      'nondeterministic')
+    expr_metric_names = [experiment_DC.metrics[id][0] for id in metric_ids]
+    if expr_metric_names != metric_names:
+        print "Training datacollection and experiment datacollection \
+               do not have matching metrics. Aborting..."
+        return
+    for idx,metric in enumerate(experiment_DC.metrics):
+        if(metric[0] == args['performance_metric']):
+            performance_metric_id = idx
+    performance = experiment_DC.profile[:,performance_metric_id]
+    profile = experiment_DC.profile[:,expr_metric_ids]
+    rotated_profile = np.dot(profile, rotation_matrix)
+    
+    cluster_membership = kmeans.closestCluster(rotated_profile)
+    clusters = [[i for i,cluster in enumerate(cluster_membership) 
+                 if cluster == cluster_id] for cluster_id in range(kmeans.k)]
 
+    prediction = np.empty_like(performance)
+    for i,cluster in enumerate(clusters):
+        if len(cluster) == 0:
+            continue
+        prediction[cluster,:] = np.array([models[i].poll(x) 
+                                          for x in rotated_profile[cluster,:]])
+   
+    if(args['plot_performance_bar']):
+        apps = [app[0] for i in range(app[2]) for app in experiment_DC.apps]
+        _figure(performance, prediction, apps)
+    if(args['plot_performance_line']):
+        _figureline(performance, prediction)
+    if(args['plot_performance_scatter']):
+        _scatter(performance, prediction)
+    if(args['show_prediction_statistics']):
+        mse = sum([(a-p)**2 for a,p in 
+                   zip(performance, prediction)]) / len(performance)
+        rmse = math.sqrt(mse)
+        mape = 100 * sum([abs((a-p)/a) for a,p in 
+                          zip(performance,prediction)]) / len(performance)
 
-
+        print "Number of experiment trials: %s" % len(performance)
+        print "Mean Average Percent Error: %s" % mape
+        print "Mean Squared Error: %s" % mse
+        print "Root Mean Squared Error: %s" % rmse
 
 def _figure(actual, prediction, apps):
     """ plot actual vs predicted for each trial
@@ -246,7 +271,7 @@ def main():
     """
     parser.add_argument('--training-datacollection', '-t',
                         type=str,
-                        help='Name training data collection')
+                        help='Name of training data collection')
     parser.add_argument('--performance-metric',
                         type=str,
                         help='Name of the performance metric to predict')
@@ -258,6 +283,13 @@ def main():
                         action='store_true',
                         default=False,
                         help='If set will test the model fit against the training data.')
+
+    """
+    EXPERIMENT DATA ARGUMENTS
+    """
+    parser.add_argument('--experiment-datacollection', '-e',
+                        type=str,
+                        help='Name of experiment data collection')
 
     """
     PLOTTING ARGUMENTS
