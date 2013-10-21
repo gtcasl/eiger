@@ -23,8 +23,7 @@ def run(args):
     """
     Interface into Eiger model generation/polling/serialization/printing/etc.
     """
-    
-    print "Training model(s)..."
+    print "Loading training data..."
     training_DC = database.DataCollection(args['training_datacollection'], 
                                           db=args['db'], 
                                           user=args['user'], 
@@ -33,7 +32,11 @@ def run(args):
     metric_ids = training_DC.metricIndexByType('deterministic', 
                                                'nondeterministic')
     metric_names = [training_DC.metrics[id][0] for id in metric_ids]
-    training_profile = training_DC.profile[:,metric_ids]
+    try:
+        training_profile = training_DC.profile[:,metric_ids]
+    except IndexError:
+        print "Unable to make model for empty data collection. Aborting..."
+        return
     for idx,metric in enumerate(training_DC.metrics):
         if(metric[0] == args['performance_metric']):
             performance_metric_id = idx
@@ -45,6 +48,16 @@ def run(args):
                                            args['pca_components'])[0]
     rotated_training_profile = np.dot(training_profile, rotation_matrix)
 
+    print "Visualizing PCA..."
+    if(args['plot_scree']):
+        PCA.PlotScree(training_pca.loadings, log=False, 
+                          title="PCA Scree Plot")
+    if(args['plot_pcs_per_metric']):
+        PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
+                             title="PCs Per Metric")
+    if(args['plot_metrics_per_pc']):
+        PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
+                             title="Metrics Per PC")
     #kmeans
     kmeans = ClusterAnalysis.KMeans(rotated_training_profile, k=args['clusters'])
     clusters = kmeans.kmeans()
@@ -52,6 +65,7 @@ def run(args):
     # reserve a vector for each model created per cluster
     models = [0] * len(clusters)
 
+    print "Modeling..."
     with tempfile.TemporaryFile() as modelfile:
         for i,cluster in enumerate(clusters):
             cluster_profile = rotated_training_profile[cluster,:]
@@ -81,26 +95,20 @@ def run(args):
         if(args['output'] is not None):
             shutil.copy(modelfile, args['output'])
 
-    print "Visualizing..."
-    if(args['plot_scree']):
-        PCA.PlotScree(training_pca.loadings, log=False, 
-                          title="PCA Scree Plot")
-    if(args['plot_pcs_per_metric']):
-        PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
-                             title="PCs Per Metric")
-    if(args['plot_metrics_per_pc']):
-        PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
-                             title="Metrics Per PC")
 
     if(args['test_fit']):
+        print "Testing fit..."
         _runExperiment(kmeans, models, rotation_matrix, training_DC, args)
     if(args['experiment_datacollection']):
+        print "Running experiment..."
+        _runExperiment(kmeans, models, rotation_matrix, training_DC, args)
         experiment_DC = database.DataCollection(args['experiment_datacollection'], 
                                                 db=args['db'], 
                                                 user=args['user'], 
                                                 passwd=args['passwd'],
                                                 host=args['host'])
         _runExperiment(kmeans, models, rotation_matrix, experiment_DC, args)
+    print "Done!"
 
 def _runExperiment(kmeans, models, rotation_matrix, 
                    experiment_DC, args):
