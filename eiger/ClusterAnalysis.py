@@ -124,8 +124,10 @@ class KMeans:
         """
         winners = []
         for e in experiment:
+            e = np.matrix(e)
             mindist = float('inf')
             for c,cluster in enumerate(self.centers):
+                cluster = np.matrix(cluster)
                 dist = 0.0
                 for i in range(0,self.data.shape[1]):
                     dist += (e[0,i] - cluster[0,i])**2
