@@ -9,3 +9,4 @@ api/intel/*
 lwperf/doc/*.aux
 lwperf/doc/*.log
 lwperf/doc/*.toc
+build/*
