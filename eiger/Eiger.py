@@ -98,26 +98,28 @@ def run(args):
 
     if(args['test_fit']):
         print "Testing fit..."
-        _runExperiment(kmeans, models, rotation_matrix, training_DC, args)
+        _runExperiment(kmeans, models, rotation_matrix, training_DC, args,
+                       metric_names)
     if(args['experiment_datacollection']):
-        print "Running experiment..."
-        _runExperiment(kmeans, models, rotation_matrix, training_DC, args)
+        print "Running experiment on data collection %s..." % \
+              (args['experiment_datacollection'],)
         experiment_DC = database.DataCollection(args['experiment_datacollection'], 
                                                 db=args['db'], 
                                                 user=args['user'], 
                                                 passwd=args['passwd'],
                                                 host=args['host'])
-        _runExperiment(kmeans, models, rotation_matrix, experiment_DC, args)
+        _runExperiment(kmeans, models, rotation_matrix, experiment_DC, args, 
+                       metric_names)
     print "Done!"
 
 def _runExperiment(kmeans, models, rotation_matrix, 
-                   experiment_DC, args):
+                   experiment_DC, args, metric_names):
     expr_metric_ids = experiment_DC.metricIndexByType('deterministic', 
                                                       'nondeterministic')
-    expr_metric_names = [experiment_DC.metrics[id][0] for id in metric_ids]
+    expr_metric_names = [experiment_DC.metrics[id][0] for id in expr_metric_ids]
     if expr_metric_names != metric_names:
-        print "Training datacollection and experiment datacollection \
-               do not have matching metrics. Aborting..."
+        print ("Training datacollection and experiment datacollection "
+               "do not have matching metrics. Aborting...")
         return
     for idx,metric in enumerate(experiment_DC.metrics):
         if(metric[0] == args['performance_metric']):
