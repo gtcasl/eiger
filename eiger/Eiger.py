@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import math
+import tempfile
+import shutil
 
 from eiger import database, ClusterAnalysis, PCA, LinearRegression
 
@@ -50,42 +52,39 @@ def run(args):
     #for testing fit
     prediction = np.empty_like(training_performance)
 
-    #for dumping to file
-    if(args['output'] is not None):
-        fid = open(args['output'], 'w')
+    with tempfile.TemporaryFile() as modelfile:
+        for i,cluster in enumerate(clusters):
+            cluster_profile = rotated_training_profile[cluster,:]
+            cluster_performance = training_performance[cluster,:]
+            regression = LinearRegression.LinearRegression(cluster_profile,
+                                                           cluster_performance)
+            pool = regression.powerLadder(cluster_profile.shape)
+            (model, r_squared, attempts) = regression.select(pool, 
+                                                    threshold=args['threshold'])
+            
+            # dump model to file
+            modelfile.write('Model %s\n' % i)
+            modelfile.write("[%s,%s](" % rotation_matrix.shape)
+            for row in range(rotation_matrix.shape[0]):
+                modelfile.write("(")
+                for col in range(rotation_matrix.shape[1]):
+                    modelfile.write("%s," % rotation_matrix[row,col])
+                modelfile.write("),")
+            modelfile.write(")\n")
+            model.toFile(modelfile)
+            for name in metric_names:
+                modelfile.write("%s\n" % name)
 
-    for i,cluster in enumerate(clusters):
-        cluster_profile = rotated_training_profile[cluster,:]
-        cluster_performance = training_performance[cluster,:]
-        regression = LinearRegression.LinearRegression(cluster_profile,
-                                                       cluster_performance)
-        pool = regression.powerLadder(cluster_profile.shape)
-        (model, r_squared, attempts) = regression.select(pool, 
-                                                threshold=args['threshold'])
-        
-        # dump model to file
-        fid.write('Model %s\n' % i)
-        fid.write("[%s,%s](" % rotation_matrix.shape)
-        for row in range(rotation_matrix.shape[0]):
-            fid.write("(")
-            for col in range(rotation_matrix.shape[1]):
-                fid.write("%s," % rotation_matrix[row,col])
-            fid.write("),")
-        fid.write(")\n")
-        model.toFile(fid)
-        for name in metric_names:
-            fid.write("%s\n" % name)
-
-        print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
+            print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
+           
+           # We usually want to make sure that our model fits well
+            if args['test_fit']:
+                prediction[cluster,:] = np.array([model.poll(x) 
+                                                  for x in cluster_profile])
        
-       # We usually want to make sure that our model fits well
-        if args['test_fit']:
-            prediction[cluster,:] = np.array([model.poll(x) 
-                                              for x in cluster_profile])
-   
-    # close created model file
-    if(args['output'] is not None):
-        fid.close()
+        # if we want to save the model file, copy it now
+        if(args['output'] is not None):
+            shutil.copy(modelfile, args['output'])
 
     print "Visualizing..."
     if(args['plot_scree']):
