@@ -13,7 +13,7 @@
 \tableofcontents
 \clearpage
 \section{Overview}
-The lightweight performance data collectors with Eiger support is intended to be a tailorable tool, not a finished product, as profiling needs vary widely. A single code markup scheme is provided which, based on compilation flags, can send performance data from parallel applications to CSV files, to an Eiger mysql database, or (in a non-database environment) to flat files for later merging and loading on a host with mysql available.
+The lightweight performance data collectors with Eiger support is intended to be a tailorable tool, not a finished product, as profiling needs vary widely. A single code markup scheme is provided which, based on compilation flags, can send performance data from parallel applications to CSV files, to an Eiger mysql database, or (in a non-database environment) to flat files for later merging and loading on a host with mysql available. As well it can be configured to remove and replace all instrumented code with calls to Eiger models for running as a skeleton within the SST/macro simulator.
 
 \label{sec:over}
 \subsection{Introduction}
@@ -106,6 +106,8 @@ There are several different parameter macros, as listed in the following table.
     IN & int & NONDETERMINISTIC \\
     DN & double & NONDETERMINISTIC \\
 \end{tabular}
+
+Analogous to PERFLOG/PERFSTOP are the macros PERFLOGKEEP/PERFSTOPKEEP. They function the same way as PERFLOG/PERFSTOP except with regards to skeletonization; use they macros whenever the metrics being instrumented are data-dependent, in the sense that they only have valid values as long as the actual computation is performed. When the -D\_USE\_EIGER\_MODEL flag is set, the sections of code in between calls to PERFLOGKEEP and PERFSTOPKEEP will \textit{not} be removed.
 
 \subsection{Performance counters}
 The performance measures captured are defined in csvformatter.h:DEFAULT\_PERFCTRS, with supporting definitions and computations required for each in the private data of csvformatter and the start/stop member functions. These are easily extended by the demanding user. At present, support for hardware performance counters is not included as it would add considerable dependency and portability problems. The enterprising user may tailor lwperf to collect hardware counters.
@@ -328,6 +330,11 @@ Early use of the tool has provided one general insight. When examining the wall-
 
 The default data collected includes the wall-clock time. This enables production of timelines which capture what code section was active when, not just how much time was spent in each call.
 
+\section{Skeletonization}
+Lwperf can be used in conjunction with the SST/macro simulator to facilitate the creation of application "skeletons", versions of the application fit for accelerated simulation by removing all time-intensive memory acquisition and computation. Each profiling site can be viewed as a way to replace the execution of that code with an equivalent Eiger model. Setting the compiler flag -D\_USE\_EIGER\_MODEL will remove all the code in between calls to PERFLOG and PERFSTOP, replacing them with appropriate calls to the Eiger models that would be created by running this code. Currently only C++ applications are supported. While this may not handle the entirety of the skeletonizing effort, it allows for seamless integration of Eiger models and skeleton construction. 
+
+Skeletonization assumes a naming convention for models created with Eiger, \textit{<site name>.model}, where <site name> is the first parameter to the PERFLOG macro.
+
 
 \section{Future work}
 
@@ -348,8 +355,5 @@ the list of files based on suffix with ls.
 \item Revisit adding a flag to eliminate MPI-dependence and add boost dependency for timing. Not terribly interesting for HPC purposes, where MPI is a given.
 \end{itemize}
 
-\section{Postscript}
-
-A rose by any other name would still be thorny. Abandon all hope ye who seek GUIs.
 
 \end{document}

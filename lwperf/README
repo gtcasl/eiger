@@ -12,10 +12,10 @@ This code is documented in lwperf.pdf (lwperf.tex); make tex to regenerate.
 The basic idea is that (for c++,c,fortran) the intrusion in user MPI-based code should be
 minimal (one-liners) once support initialization is done. E.g.
 
-	PERFLOG(someSiteName,IP(someIntInput),DP(someDoubleInput));
+	PERFLOG(someSiteName,ID(someIntInput),DN(someDoubleInput));
 	// work sections
 	...
-	PERFSTOP(someSiteName,IP(someIntInputValue),DP(someDoubleInputValue));
+	PERFSTOP(someSiteName,ID(someIntInputValue),DN(someDoubleInputValue));
 
 This syntax can be preprocessed into an efficient instrumentation scheme without
 requiring a full parse of the complete source by a tool such as ROSE/Tau.

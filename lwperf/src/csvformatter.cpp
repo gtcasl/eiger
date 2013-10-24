@@ -1,3 +1,4 @@
+#ifndef _USE_EIGER_MODELS
 #include <mpi.h>
 #include "csvformatter.h"
 #include "diffrusage.h"
@@ -54,3 +55,4 @@ int main() {
 	return 0;
 }
 #endif // test
+#endif // _USE_EIGER_MODELS
