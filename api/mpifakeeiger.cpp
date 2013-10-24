@@ -19,7 +19,7 @@
 #endif
 
 // Eiger includes
-#include <api/mpifakeeiger.h>
+#include <mpifakeeiger.h>
 
 
 ///////////////////////////////////////////////////////////

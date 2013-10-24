@@ -26,8 +26,8 @@
 #define PERFFORMATTER NO_LWPERF_ENABLED
 #define PERFDECL(...)
 #define PERFLOG(X, Y, ...)
+#define PERFLOGKEEP(X, Y, ...)
 #define PERFSTART(X)
-#define PERFSTARTKEEP(X)
 #define PERFSTOP(X, ...) 
 #define PERFSTOPKEEP(X, ...) 
 #define DR(v)
