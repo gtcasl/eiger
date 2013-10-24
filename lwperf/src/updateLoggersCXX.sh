@@ -1,5 +1,5 @@
 #!/bin/sh 
-cfiles=`ls *.cpp |sed '
+cfiles=`echo "$*" | tr ' ' '\n' |sed '
 s/aperf.cpp//g
 s/cperf.cpp//g
 s/csvformatter.cpp//g

@@ -2,7 +2,7 @@
 # this differs from the c++ scanning version in that
 # f90 doesn't use ; normally and we need extra files.
 #
-ffiles=`ls *.F90 | sed '
+ffiles=`echo "$*" | tr ' ' '\n' |sed '
 s/fperf.F90//g
 s/flocations.F90//'`
 echo "Finding Fortran profiling sites by scanning $ffiles"
