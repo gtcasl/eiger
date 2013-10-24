@@ -3,7 +3,7 @@
 # c doesn't have the same scoping rules, especially 
 # in older versions.
 #
-cfiles=`ls *.c | sed '
+cfiles=`echo "$*" | tr ' ' '\n' |sed '
 s/Make.c//g'`
 echo "Finding C profiling sites by scanning $cfiles"
 ftagline="!!! generated from $cfiles"
