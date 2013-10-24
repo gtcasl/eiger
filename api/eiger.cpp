@@ -17,7 +17,7 @@
 #include <mysql++.h>
 
 // Eiger includes
-#include <api/eiger.h>
+#include <eiger.h>
 
 
 ///////////////////////////////////////////////////////////

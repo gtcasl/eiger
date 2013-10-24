@@ -19,7 +19,7 @@
 #endif
 
 // Eiger includes
-#include <api/fakeeiger.h>
+#include <fakeeiger.h>
 
 
 ///////////////////////////////////////////////////////////
