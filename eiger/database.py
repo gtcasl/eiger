@@ -12,6 +12,7 @@ class DataCollection:
 
     def __init__(self, name=None, *args, **kwargs):
 
+        self.name = ''
         self._trial_id_map = {}
         self.apps = [] #[(name, desc, [row idxs])]
         self.machines = [] #[(name, desc, [row idxs])]
@@ -20,20 +21,21 @@ class DataCollection:
         self.profile = np.ndarray((0,0)) #[num trials, num metrics]
 
         if name:
-            self._load(name, *args, **kwargs)
+            self.name = name
+            self._load(*args, **kwargs)
 
     def metricIndexByType(self, *args):
         """ Return column index corresponding to each metric type listed in args """
         return [idx for idx, x in enumerate(self.metrics) \
                 if x[2] in args]
 
-    def _load(self, name, *args, **kwargs):
+    def _load(self, *args, **kwargs):
         """ load a data collection from db """
         db = mdb.connect(*args, **kwargs)
         cursor = db.cursor()
 
         cursor.execute("""SELECT ID FROM datacollections \
-                WHERE name="%s" """ % (name,))
+                WHERE name="%s" """ % (self.name,))
         self._my_id = cursor.fetchone()[0]
 
         # create consistent mapping of trialID to profile index
