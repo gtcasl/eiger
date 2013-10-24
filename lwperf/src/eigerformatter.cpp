@@ -1,3 +1,4 @@
+#ifndef _USE_EIGER_MODELS
 #include <mpi.h>
 #include "eigerformatter.h"
 
@@ -27,3 +28,4 @@ int main() {
 	return 0;
 }
 #endif // test
+#endif // _USE_EIGER_MODELS

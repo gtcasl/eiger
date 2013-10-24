@@ -13,13 +13,19 @@
 #include "aperf.h"
 #endif
 
+#ifdef _USE_EIGER_MODELS
+#include "sperf.h"
+#endif
+
 #ifndef PERF
 #define PERF ErRoR
 #define PERFFORMATTER NO_LWPERF_ENABLED
 #define PERFDECL(...)
 #define PERFLOG(X, Y, ...)
 #define PERFSTART(X)
+#define PERFSTARTKEEP(X)
 #define PERFSTOP(X, ...) 
+#define PERFSTOPKEEP(X, ...) 
 #define DR(v)
 #define DD(v)
 #define DN(v)

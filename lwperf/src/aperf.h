@@ -116,8 +116,10 @@ public:
 #define PERF ErRoR
 #define PERFDECL(...)
 #define PERFLOG(X, Y, ...)
+#define PERFLOGKEEP(X, Y, ...)
 #define PERFSTART(X)
 #define PERFSTOP(X, ...) 
+#define PERFSTOPKEEP(X, ...) 
 #define DR(v)
 #define DD(v)
 #define DN(v)
@@ -151,12 +153,16 @@ the rules of C enum members.
 #define PERFLOG(X, ...) \
   csvformatter * log##X = Perf::Log(lwperf_##X, #X, _USE_LS); log##X->start()
 
+#define PERFLOGKEEP(X,...) PERFLOG(X,__VA_ARGS__)
+
 /** Compute perf counters and record values. USER values should already be computed.
  VARARGS list should be same as to PERFLOG, e.g. PERFSTOP(site1,IP(param1_value),...)
 but here the values are given to I*()/D*() rather than their names.
 */
 #define PERFSTOP(X, ...) \
    { log##X->stop();  csvformatter *tmpcf = log##X;  __VA_ARGS__ ; } log##X->nextrow()
+
+#define PERFSTOPKEEP(X, ...) PERFSTOP(X, __VA_ARGS__)
 
 /** Reset reference time point and other perf counter initial values
  not normally needed separately after PERFLOG, but C++ scoping rules

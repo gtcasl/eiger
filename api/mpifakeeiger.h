@@ -40,7 +40,11 @@
 #include <fstream>
 #include <map>
 
+#ifndef USING_SSTMAC
 #include <mpi.h>
+#else
+#include <sstmac/sstmpi.h>
+#endif
 
 
 // turn off features requiring sql reads rather than writes
