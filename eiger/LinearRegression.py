@@ -143,7 +143,7 @@ class LinearRegression:
         assert(self.M == Y.shape[0])
     
 #
-    def select(self, pool, threshold=0):
+    def select(self, pool, threshold=None):
         """
         Selects a model based on a pool of models for each metric. Pool is an N-tuple, where each
         element p_i is a tuple of at least one element.
@@ -151,6 +151,9 @@ class LinearRegression:
         
         returns (model(functions, weights), rsquared, trials)
         """
+
+        if threshold == None:
+            threshold = 0
         
         model = [0 for i in range(len(pool))]
 
