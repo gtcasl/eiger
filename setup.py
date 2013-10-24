@@ -8,6 +8,6 @@ setup(name='Eiger',
 	  author='Eric Anger',
 	  author_email='eanger@gatech.edu',
 	  packages=['eiger'],
-	  scripts=['eiger/Eiger.py']
+	  scripts=['Eiger.py']
 	 )
 
