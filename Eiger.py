@@ -11,11 +11,11 @@
 
 import argparse
 import matplotlib.pyplot as plt
-import sys
 import numpy as np
 import math
 import tempfile
 import shutil
+import os
 
 from eiger import database, ClusterAnalysis, PCA, LinearRegression
 
@@ -66,7 +66,7 @@ def run(args):
     models = [0] * len(clusters)
 
     print "Modeling..."
-    with tempfile.TemporaryFile() as modelfile:
+    with tempfile.NamedTemporaryFile(delete=False) as modelfile:
         for i,cluster in enumerate(clusters):
             cluster_profile = rotated_training_profile[cluster,:]
             cluster_performance = training_performance[cluster,:]
@@ -91,9 +91,11 @@ def run(args):
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
        
-        # if we want to save the model file, copy it now
-        if(args['output'] is not None):
-            shutil.copy(modelfile, args['output'])
+    # if we want to save the model file, copy it now
+    if args['output'] == True:
+        shutil.move(modelfile.name, training_DC.name + '.model')
+    else:
+        os.remove(modelfile.name)
 
 
     if(args['test_fit']):
@@ -370,7 +372,8 @@ def main():
     MODEL CONSTRUCTION ARGUMENTS
     """
     parser.add_argument('--output', '-o',
-                        type=str,
+                        action='store_true',
+                        default=False,
                         help='Filename where this model should be saved to')
     parser.add_argument('--pca-variance',
                         type=float,
