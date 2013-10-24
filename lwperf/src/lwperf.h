@@ -5,6 +5,10 @@
 #error "this file is for inclusion in C++ sources only"
 #endif
 
+#ifdef _USE_FAKEEIGER
+#define _USE_EIGER
+#endif
+
 #ifdef _USE_EIGER
 #include "eperf.h"
 #endif
