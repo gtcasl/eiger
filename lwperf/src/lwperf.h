@@ -17,7 +17,7 @@
 #include "aperf.h"
 #endif
 
-#ifdef _USE_EIGER_MODELS
+#ifdef _USE_EIGER_MODEL
 #include "sperf.h"
 #endif
 
