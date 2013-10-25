@@ -67,6 +67,9 @@ def run(args):
 
     print "Modeling..."
     with tempfile.NamedTemporaryFile(delete=False) as modelfile:
+        modelfile.write("%s\n" % len(metric_names))
+        for name in metric_names:
+            modelfile.write("%s\n" % name)
         for i,cluster in enumerate(clusters):
             cluster_profile = rotated_training_profile[cluster,:]
             cluster_performance = training_performance[cluster,:]
@@ -78,6 +81,10 @@ def run(args):
             
             # dump model to file
             modelfile.write('Model %s\n' % i)
+            modelfile.write("[%s](" % rotation_matrix.shape[1])
+            for dim in range(kmeans.centers.shape[1]):
+                modelfile.write("%s," % kmeans.centers[0,i])
+            modelfile.write(')\n')
             modelfile.write("[%s,%s](" % rotation_matrix.shape)
             for row in range(rotation_matrix.shape[0]):
                 modelfile.write("(")
@@ -86,8 +93,6 @@ def run(args):
                 modelfile.write("),")
             modelfile.write(")\n")
             models[i].toFile(modelfile)
-            for name in metric_names:
-                modelfile.write("%s\n" % name)
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
        
