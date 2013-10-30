@@ -146,12 +146,6 @@ def _runExperiment(kmeans, models, rotation_matrix,
         prediction[cluster,:] = np.array([models[i].poll(x) 
                                           for x in rotated_profile[cluster,:]])
    
-    if(args['plot_performance_bar']):
-        apps = []
-        for app in experiment_DC.apps:
-            for i in range(len(app[2])):
-                apps.append(app[0])
-        _figure(performance, prediction, apps)
     if(args['plot_performance_line']):
         _figureline(performance, prediction)
     if(args['plot_performance_scatter']):
@@ -167,32 +161,6 @@ def _runExperiment(kmeans, models, rotation_matrix,
         print "Mean Average Percent Error: %s" % mape
         print "Mean Squared Error: %s" % mse
         print "Root Mean Squared Error: %s" % rmse
-
-def _figure(actual, prediction, apps):
-    """ plot actual vs predicted for each trial
-
-    actual - np.array
-    prediction - np.array
-    apps - ["app name"]
-    """
-    plt.figure()
-    import os.path
-    xx = range(0, len(prediction))
-    rects0 = []
-    rects1 = []
-    rects0 = plt.bar([x for x in xx], prediction, 0.4, color='blue')
-    rects1 = plt.bar([x + 0.4 for x in xx], actual, 0.4, color='black')
-    plt.xticks([x + 0.4 for x in xx], apps, rotation='90')
-    plt.legend((rects0[0], rects1[0]), ('Predicted', 'Actual'), loc='upper left')
-    if args['plot_identifier'] != 'NoName':
-        plt.title(args['plot_identifier']+ " Eiger model (blue) and training (red)")
-    else:
-        plt.title('Performance of applications versus prediction')  
-    if args['plot_dump'] == True:
-        pfname=os.path.join(args['plot_dir'],args['plot_identifier']+'_eiger_bar.pdf')
-        plt.savefig(pfname,format="pdf")
-    else:
-        plt.show()
 
 def _figureline(actual, prediction):
     import os.path
@@ -232,8 +200,8 @@ def _scatter(actual, prediction):
     plt.plot([diagpmin,pmax],[diagpmin,pmax],'k-')
     if args['plot_identifier'] != 'NoName':
         plt.title(args['plot_identifier'])
-    plt.xlabel('Walltime of experiment')
-    plt.ylabel('Walltime of eiger fit')
+    plt.xlabel('Observed')
+    plt.ylabel('Modeled')
     if args['plot_performance_log'] == True:
         plt.yscale('log')
         plt.xscale('log')
@@ -245,21 +213,6 @@ def _scatter(actual, prediction):
     else:
         plt.show()
 
-""" TODO: make this a free function, actually call it
-def _plotClustering(self):
-    profilePCA = PCA.PCA(self.trainingData.profile)
-    flattened = self.trainingData.profile * profilePCA.components[:,:2]
-    plt.figure()
-    colors = ['red','blue','green','orange','purple','brown','pink','grey','yellow','lime']
-    for c,cluster in enumerate(self.clusters):
-        plt.scatter([flattened[i,0] for i in cluster], [flattened[i,1] for i in cluster], marker='o', c = colors[c], s=40, label='Cluster ' + str(c))
-    plt.xlabel('PCA 0')
-    plt.ylabel('PCA 1')
-    plt.title('Clustering')
-    plt.legend(loc='best')
-    plt.show()
-"""
-        
 def main():
     """ Main program to parse arguments from command line"""
     parser = argparse.ArgumentParser(description = \
@@ -314,10 +267,6 @@ def main():
     """
     PLOTTING ARGUMENTS
     """
-    parser.add_argument('--plot-performance-bar',
-                        action='store_true',
-                        default=False,
-                        help="If set, plots the exeriment data collection's actual and predicted performance.")
     parser.add_argument('--plot-performance-line',
                         action='store_true',
                         default=False,
@@ -358,15 +307,10 @@ def main():
                         action='store_true',
                         default=False,
                         help='If set, plots the breakdown of metrics per principal component.')
-    parser.add_argument('--plot-clustering',
-                        action='store_true',
-                        default=False,
-                        help='If set, attempts to visualize clustering')
     parser.add_argument('--plot-identifier',
                         type=str,
                         default='NoName',
                         help='Name of the result for plot titles')
-
     parser.add_argument('--plot-dump',
                         action='store_true',
                         default=False,
