@@ -147,7 +147,10 @@ def _runExperiment(kmeans, models, rotation_matrix,
                                           for x in rotated_profile[cluster,:]])
    
     if(args['plot_performance_bar']):
-        apps = [app[0] for i in range(app[2]) for app in experiment_DC.apps]
+        apps = []
+        for app in experiment_DC.apps:
+            for i in range(len(app[2])):
+                apps.append(app[0])
         _figure(performance, prediction, apps)
     if(args['plot_performance_line']):
         _figureline(performance, prediction)
