@@ -41,7 +41,7 @@ class Model:
         Given a model and weights, returns a data set evaluted by the model
         """
         U = self.evaluate(T)
-        return np.dot(U, self.weights)
+        return math.fabs(np.dot(U, self.weights))
 
     def commit(self, db, datacollectionID, trainingComponents, machineComponents):
         """
