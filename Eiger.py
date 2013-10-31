@@ -44,12 +44,12 @@ def run(args):
 
     #pca
     training_pca = PCA.PCA(training_profile)
-    rotation_matrix = training_pca.reduced(args['pca_variance'], 
-                                           args['pca_components'])[0]
+    rotation_matrix = training_pca.nonzeroComponents()
     rotated_training_profile = np.dot(training_profile, rotation_matrix)
 
     print "Visualizing PCA..."
     if(args['plot_scree']):
+        print training_pca.loadings
         PCA.PlotScree(training_pca.loadings, log=False, 
                           title="PCA Scree Plot")
     if(args['plot_pcs_per_metric']):
@@ -327,12 +327,6 @@ def main():
                         action='store_true',
                         default=False,
                         help='Filename where this model should be saved to')
-    parser.add_argument('--pca-variance',
-                        type=float,
-                        help='Fraction of total variance to capture in principal component analysis')
-    parser.add_argument('--pca-components',
-                        type=int,
-                        help='Maximum number of components to retain from principal component analysis')
     parser.add_argument('--clusters', '-k',
                         type=int,
                         default=1,
