@@ -46,18 +46,10 @@ DEFAULT_PERFCTRS definition.
 class Perf {
 public: /** USER interface; wrap these calls in PERFDECL to allow Perf suppression
         at build time by passing -DPERF_DISABLE to compilers
-        init, file[or string]Options, mpiArgs, finalize may only be called in order, though
+        init, mpiArgs, finalize may only be called in order, though
         spread across the application.
          */
 
-	static void init();
-	static void mpiArgs(int rank, int size) ;
-	/** 
-	* deprecated options.
-        * @param prefix: typically a host or architecture name for the data file set.
-        * @param suffix: typically .log (.dat, .out, .txt, etc) for data file set
-        */
-	static void fileOptions(std::string prefix, std::string suffix);
 	/** Several string option inputs; none can include no whitespace.
         * @param host: can be a name or an architecture.
 	* @param tools: compiler set.
@@ -67,7 +59,11 @@ public: /** USER interface; wrap these calls in PERFDECL to allow Perf suppressi
         * @param suffix: typically .log (.dat, .out, .txt, etc) for data file set
 	* @bug no way to specify eiger database user, pw, hostname; hard coded.
         */
-	static void stringOptions(std::string host, std::string tools, std::string application, std::string database, std::string prefix, std::string suffix);
+	static void init(std::string machine, 
+                   std::string application, 
+                   std::string database, 
+                   std::string prefix, std::string suffix);
+	static void mpiArgs(int rank, int size) ;
 	static void finalize();
 	// The rest of the perf user interface is the
   // PERFDECL, PERFLOG, PERFSTOP, and optional PERFSTART at bottom.
@@ -81,6 +77,7 @@ private:
 	std::string prefix;
 	std::string suffix;
 	std::string machine;
+	std::string app;
 	bool append;
 	int mpirank;
 	int mpisize;
@@ -90,7 +87,10 @@ private:
 	void initX(formatter<PERFBACKEND> *cf) {}
 #include "InitFuncs.h"
 
-	Perf(bool append) : append(append), mpirank(0), mpisize(1), mpiused(false) {
+	Perf(std::string machine, std::string app, std::string prefix, 
+       std::string suffix, bool append) 
+    : machine(machine), app(app), prefix(prefix), suffix(suffix), 
+      append(append), mpirank(0), mpisize(1), mpiused(false) {
 	}
 	~Perf();
 
@@ -108,12 +108,6 @@ public:
 
 // what is its internal logger class
 #define PERFFORMATTER formatter<PERFBACKEND>
-
-#ifdef _LWPERF_SCREEN
-#define _USE_LS true
-#else
-#define _USE_LS false
-#endif
 
 #ifdef _USE_EIGER_MODEL
 #define MODELCALL(X,...) \

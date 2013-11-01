@@ -7,10 +7,10 @@
 
 extern "C" {
 
-void lwperf_init()
+void lwperf_init( const char *machine, const char *app, const char *dbname, const char *prefix, const char *suffix)
 {
 // wrapper
-  PERF::init();
+  PERF::init(machine, app, dbname, prefix, suffix);
 }
 
 void lwperf_finalize() {
@@ -20,13 +20,6 @@ void lwperf_finalize() {
 
 void lwperf_mpiArgs(int me, int csize) {
   PERF::mpiArgs(me, csize);
-}
-
-void lwperf_fileOptions( const char *host, const char *tools, const char *app,
-                        const char *dbname, const char *prefix, const char *suffix)
-{
-// wrapper
-  PERF::stringOptions(host, tools, app, dbname, prefix, suffix);
 }
 
 void lwperf_log(int site)
