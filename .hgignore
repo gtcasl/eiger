@@ -10,3 +10,9 @@ lwperf/doc/*.aux
 lwperf/doc/*.log
 lwperf/doc/*.toc
 build/*
+api/Makefile.in
+api/aclocal.m4
+api/autom4te.cache/*
+api/config/*
+api/configure
+api/m4/l*
