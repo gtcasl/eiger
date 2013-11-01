@@ -70,6 +70,21 @@ def run(args):
         modelfile.write("%s\n" % len(metric_names))
         for name in metric_names:
             modelfile.write("%s\n" % name)
+        modelfile.write("[%s](" % len(kmeans.means))
+        for mean in kmeans.means:
+            modelfile.write("%s," % mean)
+        modelfile.write(")\n")
+        modelfile.write("[%s](" % len(kmeans.stdevs))
+        for stdev in kmeans.stdevs:
+            modelfile.write("%s," % stdev)
+        modelfile.write(")\n")
+        modelfile.write("[%s,%s](" % rotation_matrix.shape)
+        for row in range(rotation_matrix.shape[0]):
+            modelfile.write("(")
+            for col in range(rotation_matrix.shape[1]):
+                modelfile.write("%s," % rotation_matrix[row,col])
+            modelfile.write("),")
+        modelfile.write(")\n")
         for i,cluster in enumerate(clusters):
             cluster_profile = rotated_training_profile[cluster,:]
             cluster_performance = training_performance[cluster,:]
@@ -85,13 +100,6 @@ def run(args):
             for dim in range(kmeans.centers.shape[1]):
                 modelfile.write("%s," % kmeans.centers[0,i])
             modelfile.write(')\n')
-            modelfile.write("[%s,%s](" % rotation_matrix.shape)
-            for row in range(rotation_matrix.shape[0]):
-                modelfile.write("(")
-                for col in range(rotation_matrix.shape[1]):
-                    modelfile.write("%s," % rotation_matrix[row,col])
-                modelfile.write("),")
-            modelfile.write(")\n")
             models[i].toFile(modelfile)
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
