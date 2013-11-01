@@ -63,10 +63,9 @@ After lwperf.h is included in the driver and all files where collection is neede
 
 From application driver cxxapp.cpp:
 \begin{verbatim}
-  PERFDECL(PERF::init();)
+  PERFDECL(PERF::init("intel i7",""cxxapp.cpp","cxxapp","tesla.",".log");)
   // collect communicator rank and size : profiling a single-node job using
   PERFDECL(PERF::mpiArgs(me,csize);)
-  PERFDECL(PERF::stringOptions("x5550","gcc","cxxapp.cpp","cxxapp","tesla.",".log");)
 \end{verbatim}
 Here all the initialization calls are wrapped in PERFDECL, a macro that deletes the calls if the profiler is not enabled by one of the USE flags. Unlike many tools, performance collection sites can be disabled on a per-file basis by eliminating from the compiler arguments the -D\_USE\_(CSV|EIGER) flag. On the driver and all files where collection is enabled, the same flag (EIGER or CSV) must be used; mixing is not allowed. 
 
@@ -157,9 +156,8 @@ int main(){
   int x = 0, nx=0;
   double dp = 3.14;
 
-  PERF_INIT;
+  PERF_INIT("intel i7","capp.c","capp","tesla.",".log");
   PERF_MPI(0,1);
-  PERF_OPTS("x5550","gcc","capp.c","capp","tesla.",".log") ;
   char buf[26];
 
   printf("Enter number of repeats\n");
@@ -240,9 +238,8 @@ The application code changes are similar to those for C/C++, inserting macros wh
     call MPI_INIT(ierr)
     call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)
     call MPI_Comm_size(MPI_COMM_WORLD,sz,ierr)
-    PERF_INIT
+    PERF_INIT("intel i7","capp.c","capp","tesla.",".log");
     PERF_MPI(rank,sz)
-    PERF_OPTS("x5550","gfortran","app.F90","fortapp","tesla.",".log") 
 
     if (rank == 0) then
       print *, 'Enter number of repeats'
@@ -321,8 +318,6 @@ The aims of the lwperf implementation tactics are:
 
 In the C++ binding, a local variable is generated that enables a single object lookup to handle each site. In the C and Fortran bindings, portability and syntactic considerations force us to use two object lookups per site execution.
 
-The only place that inter-language string processing occurs is in the PERF\_OPTS macro of the Fortran binding.
-
 \section{Analysis}
 Lwperf makes collecting large amounts of performance data easy. Analysis of the data is beyond the scope of this document. Studying the impact of application parameters and compiler options on the runtime performance of specific code segments (loop nests) requires careful construction of a set of benchmark runs spanning some relevant parameter space. The generated CSV files can be easily aggregated and then imported or translated for use in any preferred tool (a spreadsheet, gnuplot, etc).
 
@@ -347,8 +342,6 @@ There are several tasks of minor housekeeping or performance value:
 the list of files based on suffix with ls.
 
 \item Add dumping to memory buffer (ostringstream) and flush to disk on some schedule rather than i/o at each time a PERFSTOP is reached. In principle, a reasonable OS is already doing this for us, but in practice the buffer size is likely to be smaller than we might like.
-
-\item Modify non-eiger stringOptions semantics to put all files in a subdirectory, as noted in aperf.cpp.
 
 \item Revisit using a map instead of an array for the log index in Perf and EigerPerf classes.
 

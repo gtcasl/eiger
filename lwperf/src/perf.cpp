@@ -5,21 +5,12 @@
 #include "perf.h"
 
 static Perf *perf_singleton = 0;
-void Perf::init() {
+void Perf::init(std::string machine, std::string app, std::string dbname, 
+                std::string prefix, std::string suffix) {
 	assert(perf_singleton==0);
         char *esalt = getenv("PERF_APPEND");
         bool append = (esalt != 0);
-	perf_singleton = new Perf(append );
-}
-
-void
-Perf::stringOptions(std::string host, std::string tools, std::string app, std::string dbname, std::string prefix, std::string suffix)
-{
-	assert(perf_singleton!=0);
-	if (!perf_singleton) return;
-	perf_singleton->prefix = prefix;
-	perf_singleton->suffix = suffix;
-	perf_singleton->machine = host;
+	perf_singleton = new Perf(machine, app, prefix, suffix, append );
 
   std::string dbfile = "127.0.0.1";
   std::string uname = "root";
@@ -30,41 +21,6 @@ Perf::stringOptions(std::string host, std::string tools, std::string app, std::s
 #endif
 }
 
-void
-Perf::fileOptions(std::string p, std::string s)
-{
-	assert(perf_singleton!=0);
-	if (!perf_singleton) return;
-	perf_singleton->prefix = p;
-	perf_singleton->suffix = s;
-
-        std::string machineName = p;
-#ifdef FORTRAN
-#define APP "app"
-        std::string app = APP;
-        std::string tools = "gcc";
-        std::string dbname = "fortapp";
-#endif
-#ifdef CAPP
-#define APP "capp"
-        std::string app = APP;
-        std::string tools = "gcc";
-        std::string dbname = "capp";
-#endif
-#ifndef APP
-        std::string app = "minimd-0.1";
-        std::string tools = "intel";
-        std::string dbname = "minimd";
-#endif
-        std::string dbfile = "127.0.0.1";
-        std::string uname = "root";
-        std::string pw = "eiger123";
-	// in mpi-parallel, we will pound the database
-#if defined(_USE_EIGER) || defined(_USE_FAKEEIGER)
-	eiger::Connect(dbfile, dbname, uname, pw );
-#endif
-
-}
 void
 Perf::mpiArgs(int rank, int size){
 	assert(perf_singleton!=0);

@@ -10,13 +10,12 @@
 #endif
 
 /* this file must match fperf.F90 bind c requirements also */
-extern void lwperf_init();
+extern void lwperf_init(const char *machine, const char *app, const char *db, const char *prefix, const char *suffix);
 extern void lwperf_finalize();
 extern void lwperf_mpiArgs(int rank, int size);
 extern void lwperf_log(int site);
 extern void lwperf_start(int site);
 extern void lwperf_stop(int site);
-extern void lwperf_fileOptions( const char *host, const char *tools, const char *app, const char *db, const char *prefix, const char *suffix);
 
 enum CLocation {
 	X, // dummy for example
@@ -51,9 +50,8 @@ enum CLocation {
 /// macro to wrap declarations used only for perf logging.
 #define PERFDECL(...) __VA_ARGS__
 
-#define PERF_INIT lwperf_init()
+#define PERF_INIT(machine,app,db,prefix,suffix) lwperf_init(machine,app,db,prefix,suffix)
 #define PERF_MPI(rank,size) lwperf_mpiArgs(rank,size)
-#define PERF_OPTS(host, tools, app, db, prefix,suffix) lwperf_fileOptions(host, tools, app, db, prefix,suffix)
 #define PERF_FINAL lwperf_finalize()
 
 // which logger class are we using

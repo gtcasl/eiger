@@ -5,7 +5,10 @@
 
  interface
 
- subroutine lwperf_init()  bind(C, name="lwperf_init")
+ subroutine lwperf_init(machine,app,db, p,s)  bind(C, name="lwperf_init")
+ ! wrapper expecting c null-terminated strings w/out trailing whitespace
+ use iso_c_binding
+   character(kind=c_char) :: machine(*),app(*),db(*), p(*), s(*)
  end subroutine
 
  subroutine lwperf_finalize() bind(C, name="lwperf_finalize")
@@ -32,12 +35,6 @@
   INTEGER(c_int), value, INTENT(IN) :: n 
  end subroutine
 
- subroutine fileOptions(host,tools,app,db, p,s) bind(C, name="lwperf_fileOptions")
- ! wrapper expecting c null-terminated strings w/out trailing whitespace
- use iso_c_binding
-   character(kind=c_char) :: host(*),tools(*),app(*),db(*), p(*), s(*)
- end subroutine fileOptions 
-
 #include "fperf._save.h"
 
  end interface
@@ -47,25 +44,5 @@
 
  contains
 
- subroutine lwperf_fileOptionsWrapper(host,tools,app,db, prefix, suffix)
- use iso_c_binding
-  character(len=*), INTENT(IN) :: prefix, suffix, host,tools,app,db
-  character(len=len_trim(host)+1) :: c_host
-  character(len=len_trim(tools)+1) :: c_tools
-  character(len=len_trim(app)+1) :: c_app
-  character(len=len_trim(db)+1) :: c_db
-  character(len=len_trim(prefix)+1) :: c_p
-  character(len=len_trim(suffix)+1) :: c_s
-  c_host = trim(host) // C_NULL_CHAR
-  c_tools = trim(tools) // C_NULL_CHAR
-  c_app = trim(app) // C_NULL_CHAR
-  c_db = trim(db) // C_NULL_CHAR
-  c_p = trim(prefix) // C_NULL_CHAR
-  c_s = trim(suffix) // C_NULL_CHAR
-  ! write(*,*) "prefix", trim(prefix)
-  !print *, "suffix", trim(suffix)
-  call fileOptions(c_host, c_tools, c_app, c_db, c_p,c_s)
- end subroutine
- 
  end module 
   

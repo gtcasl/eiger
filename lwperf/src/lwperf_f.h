@@ -12,10 +12,9 @@
 !// turn it all off
 #define PERF ErRoR
 
-#define PERF_USE
+#define PERF_USE(a,b,c,d,e,f)
 #define PERF_INIT
 #define PERF_MPI(a,b)
-#define PERF_OPTS(a,b,c,d,e,f)
 #define PERF_FINAL
 
 #define PERFDECL(x)
@@ -49,9 +48,8 @@
 !! // no PERF_DISABLE defined
 
 #define PERF_USE use lwperf
-#define PERF_INIT call lwperf_init()
+#define PERF_INIT(m,a,d,prefix,suffix) call lwperf_init(m,a,d,prefix,suffix)
 #define PERF_MPI(rank,size) call lwperf_mpiArgs(rank,size)
-#define PERF_OPTS(h,t,a,d,prefix,suffix) call lwperf_fileOptionsWrapper(h,t,a,d,prefix,suffix)
 #define PERF_FINAL call lwperf_finalize()
 
 !! cheat to get around lack of ## in gnu fpp/tradcpp
