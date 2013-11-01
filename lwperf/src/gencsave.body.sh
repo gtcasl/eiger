@@ -8,7 +8,7 @@ puts=`echo $* | sed -e 's/IR(\(\w*\))/ log->put(\1);\n/g' -e 's/ID(\(\w*\))/ log
  -e 's/DR(\(\w*\))/ log->put(\1);\n/g' -e 's/DD(\(\w*\))/ log->put(\1);\n/g' -e 's/DN(\(\w*\))/ log->put(\1);\n/g'`
 
 echo "void lwperf_save_$site($args) {
- PERFFORMATTER *log = PERF::Log($site, \"$site\",_USE_LS);
+ PERFFORMATTER *log = PERF::Log($site, \"$site\");
  $puts
  log->nextrow();
 }

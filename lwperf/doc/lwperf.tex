@@ -114,11 +114,11 @@ The performance measures captured are defined in csvformatter.h:DEFAULT\_PERFCTR
 
 
 \section{Building}
-Being lightweight by design, this tool is intended to be used by incorporation into the investigated application and its build processes rather than as an independent library.  In order to keep performance impact to minimum without introducing a proprietary compiler, some simple portions of the support classes must be generated based on a scan of the sites defined in the application code. This scan is performed and the generated code is updated by the simple utility {\em updateLoggersCXX.sh}. This utility may be tailored to the user's application source code, in most cases by adjusting the definition of the {\em cfiles} variable at the top of the script.
+Being lightweight by design, this tool is intended to be used by incorporation into the investigated application and its build processes rather than as an independent library.  In order to keep performance impact to minimum without introducing a proprietary compiler, some simple portions of the support classes must be generated based on a scan of the sites defined in the application code. This scan is performed and the generated code is updated by the simple utility {\em updateLoggersCXX.sh}. This utility takes the file names to parse as parameters.
 
 The logger can be kept consistent with the user code with a simple makefile rule such as:
 \begin{verbatim}
-GENSRC=CSVInitFuncs.h InitSwitchElements.h EigerInitFuncs.h LocationElements.h
+GENSRC=InitFuncs.h InitSwitchElements.h LocationElements.h
 $(GENSRC):  $(SRC) updateLoggersCXX.sh
         ./updateLoggersCXX.sh
 \end{verbatim}
@@ -197,7 +197,7 @@ cperf._stop.h: $(CSRC) updateLoggersC.sh
 Compiling and linking mixed language code is often tricky. Here is an example that may be inspirational; further explanation is beyond the scope of this note. Several additional examples are included in the Make.c* build scripts.
 \begin{verbatim}
 mpicc.openmpi -g capp.c -D_USE_EIGER \
-cperf.o eperf.o eigerformatter.o csvformatter.o diffrusage.o \
+cperf.o perf.o formatter.o \
 -lmpi_cxx -lstdc++ \
 /home/baallan/sst/gatech/eiger-svn/api/gcc/libeigerInterface.a \
 /usr/lib/libmysqlpp.a -lmysqlclient \
@@ -277,7 +277,7 @@ Compiling and linking mixed language code is often tricky. Here is an example th
 
 \begin{verbatim}
 mpif90.openmpi  fperf.o app.F90 -D_USE_EIGER \
-cperf.o eperf.o eigerformatter.o csvformatter.o diffrusage.o \
+cperf.o perf.o formatter.o \
 /home/baallan/sst/gatech/eiger-svn/api/gcc/libeigerInterface.a \
 /usr/lib/libmysqlpp.a -lmysqlclient \
 -lmpi_cxx -lstdc++ \

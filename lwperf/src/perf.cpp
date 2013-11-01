@@ -1,40 +1,37 @@
-
-#include "eperf.h"
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
 
-static EigerPerf *perf_singleton = 0;
-void EigerPerf::init() {
+#include "perf.h"
+
+static Perf *perf_singleton = 0;
+void Perf::init() {
 	assert(perf_singleton==0);
         char *esalt = getenv("PERF_APPEND");
         bool append = (esalt != 0);
-	perf_singleton = new EigerPerf(append );
+	perf_singleton = new Perf(append );
 }
 
 void
-EigerPerf::stringOptions(std::string host, std::string tools, std::string app, std::string dbname, std::string prefix, std::string suffix)
+Perf::stringOptions(std::string host, std::string tools, std::string app, std::string dbname, std::string prefix, std::string suffix)
 {
 	assert(perf_singleton!=0);
 	if (!perf_singleton) return;
 	perf_singleton->prefix = prefix;
 	perf_singleton->suffix = suffix;
+	perf_singleton->machine = host;
 
-        std::string machineName = host;
-
-        std::string dbfile = "127.0.0.1";
-        std::string uname = "root";
-        std::string pw = "root";
-
+  std::string dbfile = "127.0.0.1";
+  std::string uname = "root";
+  std::string pw = "root";
 	// in mpi-parallel, we will pound the database
+#if defined(_USE_EIGER) || defined(_USE_FAKEEIGER)
 	eiger::Connect(dbfile, dbname, uname, pw );
-
-	perf_singleton->epec = new eigercontext(app, machineName, tools);
-
+#endif
 }
 
 void
-EigerPerf::fileOptions(std::string p, std::string s)
+Perf::fileOptions(std::string p, std::string s)
 {
 	assert(perf_singleton!=0);
 	if (!perf_singleton) return;
@@ -63,45 +60,79 @@ EigerPerf::fileOptions(std::string p, std::string s)
         std::string uname = "root";
         std::string pw = "eiger123";
 	// in mpi-parallel, we will pound the database
+#if defined(_USE_EIGER) || defined(_USE_FAKEEIGER)
 	eiger::Connect(dbfile, dbname, uname, pw );
-
-	perf_singleton->epec = new eigercontext(app, machineName, tools);
+#endif
 
 }
 void
-EigerPerf::mpiArgs(int rank, int size){
+Perf::mpiArgs(int rank, int size){
 	assert(perf_singleton!=0);
 	if (!perf_singleton) return;
 	perf_singleton->mpirank = rank;
 	perf_singleton->mpisize = size;
 	perf_singleton->mpiused = true;
+  getInvariants()["MPIrank"] = rank;
+  getInvariants()["MPIsize"] = size;
 }
 
 void 
-EigerPerf::finalize() {
-	std::map<enum Location, eigerformatter *>::iterator it = perf_singleton->log.begin();
+Perf::finalize() {
+	std::map<enum Location, formatter<PERFBACKEND> *>::iterator it = perf_singleton->log.begin();
 	while (it != perf_singleton->log.end() ) {
 		delete it->second;
 		 perf_singleton->log[it->first] = 0;
 		it++;
 	}
+#if defined(_USE_EIGER) || defined(_USE_FAKEEIGER)
 	eiger::Disconnect();
+#endif
 	assert(perf_singleton!=0);
 	delete perf_singleton; 
 	perf_singleton = 0;
 }
 
 std::string
-EigerPerf::makeFileName(std::string & filename) 
+Perf::makeFileName(std::string & filename) 
 {
 	std::stringstream s;
 	s << prefix << filename << "_mpi_" << mpisize << "." << mpirank <<suffix;
 	return s.str();
 }
 
-eigerformatter *EigerPerf::Log(enum Location l, std::string filename, bool screen)
+formatter<PERFBACKEND> *Perf::Log(enum Location l, std::string filename)
 {
 	assert(perf_singleton!=0);
 	if (!perf_singleton) return 0; 
-	return perf_singleton->getLog(l, filename, screen);
+	return perf_singleton->getLog(l, filename);
 }
+
+Perf::~Perf() {
+  for (std::map<enum Location, formatter<PERFBACKEND> *>::iterator i = log.begin(); 
+      i != log.end(); i++) {
+    delete i->second;
+  }
+}
+
+formatter<PERFBACKEND> *Perf::getLog(enum Location l, std::string filename) {
+  formatter<PERFBACKEND> *cf = log[l];
+  if (!cf) {
+    formatter<PERFBACKEND> * ncf = new formatter<PERFBACKEND>(filename, machine, getInvariants());
+    switch (l) {
+    case X: initX(ncf); break;
+#ifndef PERF_DISABLE
+#include "InitSwitchElements.h"
+#endif
+    default:
+      assert(0 == "unexpected Location given to PERFLOG");
+      break;
+    }
+    if(!append) { ncf->writeheaders(); }
+    log[l] = ncf;
+  } else {
+    return cf;
+  }
+  cf = log[l];
+  return cf;
+}
+

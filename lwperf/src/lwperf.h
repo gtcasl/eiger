@@ -1,41 +1,31 @@
-#ifndef perf_h
-#define perf_h
+#ifndef lwperf_h
+#define lwperf_h
 
 #ifndef __cplusplus
 #error "this file is for inclusion in C++ sources only"
 #endif
 
-#ifdef _USE_FAKEEIGER
-#define _USE_EIGER
-#endif
+#if !defined(PERF_DISABLE) || defined(_USE_EIGER) || defined(_USE_CSV) || \
+    defined(_USE_EIGER_MODEL) || defined(_USE_FAKEEIGER)
 
-#ifdef _USE_EIGER
-#include "eperf.h"
-#endif
+#include "perf.h"
 
-#ifdef _USE_CSV
-#include "aperf.h"
-#endif
-
-#ifdef _USE_EIGER_MODEL
-#include "sperf.h"
-#endif
-
-#ifndef PERF
+#else // PERF_DISABLE is set
 #define PERF ErRoR
 #define PERFFORMATTER NO_LWPERF_ENABLED
 #define PERFDECL(...)
-#define PERFLOG(X, Y, ...)
-#define PERFLOGKEEP(X, Y, ...)
+#define PERFLOG(X, ...)
+#define PERFLOGKEEP(X, ...)
 #define PERFSTART(X)
 #define PERFSTOP(X, ...) 
 #define PERFSTOPKEEP(X, ...) 
+#define REGISTERINVARIANT(name,value)
 #define DR(v)
 #define DD(v)
 #define DN(v)
 #define IR(v)
 #define ID(v)
 #define IN(v)
-#endif
+#endif // PERF_DISABLE
 
-#endif // perf_h
+#endif // lwperf_h
