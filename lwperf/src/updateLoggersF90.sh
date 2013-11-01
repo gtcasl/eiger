@@ -11,33 +11,19 @@ ctagline="///  from $ffiles"
 
 # build C++ calls from fortran source
 
-echo "   updating CSVInitFuncs.h"
+echo "   updating InitFuncs.h"
 grep -h PERFLOG $ffiles | \
 sed -e 's/[ \t]//g' \
  -e 's/;$//' \
- -e 's/.*PERFLOG[0-9](\(\w*\)[ ,]*/\tvoid init\1(csvformatter *c){/g' \
- -e 's/DR(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DR);/g'  \
- -e 's/DD(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DD);/g' \
- -e 's/DN(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DN);/g' \
- -e 's/IR(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",IR);/g' \
- -e 's/ID(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",ID);/g' \
- -e 's/IN(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",IN);/g' \
- -e 's/)$/ }/' > CSVInitFuncs.h
-echo $ctagline >> CSVInitFuncs.h
-
-echo "   updating EigerInitFuncs.h"
-grep -h PERFLOG $ffiles | \
-sed -e 's/[ \t]//g' \
- -e 's/;$//' \
- -e 's/.*PERFLOG[0-9](\(\w*\)[ ,]*/\tvoid init\1(eigerformatter *c){/g' \
- -e 's/DR(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DR);/g'  \
- -e 's/DD(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DD);/g' \
- -e 's/DN(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DN);/g' \
- -e 's/IR(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",IR);/g' \
- -e 's/ID(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",ID);/g' \
- -e 's/IN(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",IN);/g' \
- -e 's/)$/ }/' > EigerInitFuncs.h
-echo $ctagline >> EigerInitFuncs.h
+ -e 's/.*PERFLOG[0-9](\(\w*\)[ ,]*/\tvoid init\1(formatter<PERFBACKEND> *c){/g' \
+ -e 's/DR(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",RESULT);/g'  \
+ -e 's/DD(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DETERMINISTIC);/g' \
+ -e 's/DN(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",NONDETERMINISTIC);/g' \
+ -e 's/IR(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",RESULT);/g' \
+ -e 's/ID(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",DETERMINISTIC);/g' \
+ -e 's/IN(\([A-Za-z0-9._]*\)),*/ c->addCol("\1",NONDETERMINISTIC);/g' \
+ -e 's/)$/ }/' > InitFuncs.h
+echo $ctagline >> InitFuncs.h
 
 echo "   updating InitSwitchElements.h"
 grep -h PERFLOG $ffiles |sed -e 's/.*PERFLOG[0-9](\(\w*\).*/\t\t\tcase \1: init\1(ncf); break;/g' > InitSwitchElements.h
@@ -45,7 +31,7 @@ echo $ctagline >> InitSwitchElements.h
 
 # build C interface for fortran bind c
 echo "   updating cperf _log"
-grep -h PERFLOG $ffiles |sed -e 's/.*PERFLOG[0-9](\(\w*\).*/case ENUMXXX: { PERF::Log(\1, "\1", _USE_LS)->start(); } break; /g' |awk '
+grep -h PERFLOG $ffiles |sed -e 's/.*PERFLOG[0-9](\(\w*\).*/case ENUMXXX: { PERF::Log(\1, "\1")->start(); } break; /g' |awk '
 BEGIN { count=1 }
 {
 sub("ENUMXXX",count)
@@ -55,7 +41,7 @@ print
 echo $ctagline >> cperf._log.h
 
 echo "   updating cperf _stop"
-grep -h PERFLOG $ffiles |sed -e 's/.*PERFLOG[0-9](\(\w*\).*/case ENUMXXX: { PERF::Log(\1, "\1", _USE_LS)->stop(); } break; /g' |awk '
+grep -h PERFLOG $ffiles |sed -e 's/.*PERFLOG[0-9](\(\w*\).*/case ENUMXXX: { PERF::Log(\1, "\1")->stop(); } break; /g' |awk '
 BEGIN { count=1 }
 {
 sub("ENUMXXX",count)

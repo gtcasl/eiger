@@ -37,6 +37,7 @@
 
 // STL includes
 #include <vector>
+#include <sstream>
 #include <fstream>
 #include <map>
 

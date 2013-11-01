@@ -1,8 +1,27 @@
-#ifndef eperf_h
-#define eperf_h
-#include "eigerformatter.h"
+#ifndef perf_h
+#define perf_h
 #include <map>
 #include <cassert>
+#ifdef _USE_EIGER_MODEL
+#include <sstmac/software/api/eiger/sstmac_compute_eiger.h>
+#endif
+
+#include "eigerbackend.h"
+#include "csvbackend.h"
+#include "nullbackend.h"
+#include "formatter.h"
+
+#ifdef _USE_CSV
+#define PERFBACKEND CSVBackend
+#endif
+
+#if defined(_USE_EIGER) || defined(_USE_FAKEEIGER)
+#define PERFBACKEND EigerBackend
+#endif
+
+#ifdef _USE_EIGER_MODEL
+#define PERFBACKEND NullBackend
+#endif
 
 // An enum that must be tailored (along with getlog) to the code being instrumented.
 // We want to define a single pile of instrumentation that
@@ -11,9 +30,7 @@
 // compares.
 enum Location {
 	X, // dummy for example
-#ifndef PERF_DISABLE
 #include "LocationElements.h"
-#endif
 };
 
 
@@ -26,7 +43,7 @@ The specific perf counters and timers collected implicitly are tailored
 in csvformatter.h and .cpp start/stop functions and in 
 DEFAULT_PERFCTRS definition.
 */
-class EigerPerf {
+class Perf {
 public: /** USER interface; wrap these calls in PERFDECL to allow Perf suppression
         at build time by passing -DPERF_DISABLE to compilers
         init, file[or string]Options, mpiArgs, finalize may only be called in order, though
@@ -53,91 +70,44 @@ public: /** USER interface; wrap these calls in PERFDECL to allow Perf suppressi
 	static void stringOptions(std::string host, std::string tools, std::string application, std::string database, std::string prefix, std::string suffix);
 	static void finalize();
 	// The rest of the perf user interface is the
-        // PERFDECL, PERFLOG, PERFSTOP, and optional PERFSTART at bottom.
+  // PERFDECL, PERFLOG, PERFSTOP, and optional PERFSTART at bottom.
 
+  static std::map<std::string, double>& getInvariants(){
+    static std::map<std::string, double> invariants;
+    return invariants;
+  }
 private:
-	eigercontext *epec; // valid after fileOptions
-	std::map<enum Location, eigerformatter *> log;
+	std::map<enum Location, formatter<PERFBACKEND> *> log;
 	std::string prefix;
 	std::string suffix;
+	std::string machine;
 	bool append;
 	int mpirank;
 	int mpisize;
 	bool mpiused;
 
-	void initX(eigerformatter *cf) {}
-#ifndef PERF_DISABLE
-#include "EigerInitFuncs.h"
-#endif
 
-	EigerPerf(bool append) : append(append), mpirank(0), mpisize(1), mpiused(false) {
+	void initX(formatter<PERFBACKEND> *cf) {}
+#include "InitFuncs.h"
+
+	Perf(bool append) : append(append), mpirank(0), mpisize(1), mpiused(false) {
 	}
-	~EigerPerf() {
-		for (std::map<enum Location, eigerformatter *>::iterator i = log.begin(); i != log.end(); i++) {
-			delete i->second;
-		}
-		delete epec; epec = 0;
-	}
+	~Perf();
 
 	std::string makeFileName(std::string & filename);
 
-	eigerformatter *getLog(enum Location l, std::string filename, bool screen) {
-		assert(epec != 0 || 0 == "PERFLOG called before PERFOPTS");
-		eigerformatter *cf = log[l];
-		if (!cf) {
-			std::string sname = filename; 
-#ifdef _EIGER_NOCSV
-			std::string csvname = "";
-#else
-			std::string csvname = makeFileName(filename);
-#endif
-			eigerformatter * ncf = new eigerformatter(csvname,screen, mpirank, mpisize, append, sname, epec);
-			switch (l) {
-			case X: initX(ncf); break;
-#ifndef PERF_DISABLE
-#include "InitSwitchElements.h"
-#endif
-			default:
-				assert(0 == "unexpected Location given to PERFLOG");
-				break;
-			}
-			if (!append) { ncf->writeheaders(); }
-			log[l] = ncf;
-		} else {
-			return cf;
-		}
-		cf = log[l];
-		return cf;
-	}
+	formatter<PERFBACKEND> *getLog(enum Location l, std::string filename);
 
 public:
 	// macro user only
-	static eigerformatter *Log(enum Location l, std::string sitename, bool screen);
+	static formatter<PERFBACKEND> *Log(enum Location l, std::string sitename);
 };
 
-#ifdef PERF_DISABLE
-// turn it all off
-#define PERF ErRoR
-#define PERFDECL(...)
-#define PERFLOG(X, Y, ...)
-#define PERFLOGKEEP(X, Y, ...)
-#define PERFSTART(X)
-#define PERFSTOP(X, ...) 
-#define PERFSTOPKEEP(X, ...) 
-#define DR(v)
-#define DD(v)
-#define DN(v)
-#define IR(v)
-#define ID(v)
-#define IN(v)
-
-#else // no PERF_DISABLE defined
-
 // which logger class are we using
-#define PERF EigerPerf
+#define PERF Perf
 
 // what is its internal logger class
-#define PERFFORMATTER eigerformatter
+#define PERFFORMATTER formatter<PERFBACKEND>
 
 #ifdef _LWPERF_SCREEN
 #define _USE_LS true
@@ -145,6 +115,46 @@ public:
 #define _USE_LS false
 #endif
 
+#ifdef _USE_EIGER_MODEL
+#define MODELCALL(X,...) \
+  {std::map<std::string, double> eigerparams; \
+  std::string sitename = #X; \
+  for(std::map<std::string,double>::const_iterator it = PERF::getInvariants().begin(); \
+      it != PERF::getInvariants().end(); ++it){ \
+    eigerparams[sitename + "_" + it->first] = it->second; \
+  } \
+  __VA_ARGS__; \
+  SSTMAC_compute_eiger(eigerparams, #X ".model"); }
+#define STARTREMOVECODE \
+  if(0){
+#define STOPREMOVECODE }
+#define DR(v) eigerparams[sitename + "_" #v] = v
+#define DD(v) eigerparams[sitename + "_" #v] = v
+#define DN(v) eigerparams[sitename + "_" #v] = v
+#define IR(v) eigerparams[sitename + "_" #v] = v
+#define ID(v) eigerparams[sitename + "_" #v] = v
+#define IN(v) eigerparams[sitename + "_" #v] = v
+
+#define PERFSTOPKEEP(X, ...)
+#else // no model
+#define MODELCALL(X,...)
+#define STARTREMOVECODE
+#define STOPREMOVECODE
+// D* & I* macros are used at PERFSTOP to store values.
+// Their appearance in PERFLOG (which must match PERFSTOP)
+// is preprocessed by means other than C preprocessor into initialization calls as needed.
+// Typically, application code uses only IP to name integer inputs
+#define DR(v) tmpcf->put(v)
+#define DD(v) tmpcf->put(v)
+#define DN(v) tmpcf->put(v)
+#define IR(v) tmpcf->put(v)
+#define ID(v) tmpcf->put(v)
+#define IN(v) tmpcf->put(v)
+
+#define PERFSTOPKEEP(X, ...) \
+   { log##X->stop();  formatter<PERFBACKEND> *tmpcf = log##X;  __VA_ARGS__ ; } log##X->nextrow()
+
+#endif // _USE_EIGER_MODEL
 
 /** Wraps statements that should be suppressed if PERF_DISABLE is defined.
 // The other PERF macros are automatically suppressed if PERF_DISABLE is defined.
@@ -158,19 +168,22 @@ public:
 the rules of C enum members.
 @param ... I*(name) or D*(name) for int/double log data names .
 */
-#define PERFLOG(X, Y, ...) \
-  eigerformatter * log##X = EigerPerf::Log(lwperf_##X, #X, _USE_LS); log##X->start()
+#define PERFLOG(X, ...) \
+  PERFLOGKEEP(X,__VA_ARGS__); \
+  STARTREMOVECODE
 
-#define PERFLOGKEEP(X,Y,...) PERFLOG(X,Y,__VA_ARGS__)
+#define PERFLOGKEEP(X,...) \
+  formatter<PERFBACKEND> * log##X = Perf::Log(lwperf_##X, #X); log##X->start(); \
+  MODELCALL(X,__VA_ARGS__)
 
 /** Compute perf counters and record values. USER values should already be computed.
  VARARGS list should be same as to PERFLOG, e.g. PERFSTOP(site1,IP(param1_value),...)
 but here the values are given to I*()/D*() rather than their names.
 */
 #define PERFSTOP(X, ...) \
-   { log##X->stop();  eigerformatter *tmpcf = log##X;  __VA_ARGS__ ; } log##X->nextrow()
+    STOPREMOVECODE \
+    PERFSTOPKEEP(X, __VA_ARGS__)
 
-#define PERFSTOPKEEP(X, ...) PERFSTOP(X, __VA_ARGS__)
 
 // reset reference time point and other perf counter initial values
 // not normally needed separately before PERFLOG, but C++ scoping rules
@@ -178,18 +191,11 @@ but here the values are given to I*()/D*() rather than their names.
 #define PERFSTART(X) \
   log##X->start()
 
-// D* & I* macros are used at PERFSTOP to store values.
-// Their appearance in PERFLOG (which must match PERFSTOP)
-// is preprocessed by means other than C preprocessor into initialization calls as needed.
-// Typically, application code uses only IP to name integer inputs
+// Register a new invariant metric. This value, once set, does not change
+// throughout the execution of the application. These are your determinisitic 
+// metrics; use these to describe any input dataset-specific information 
+// about your application.
+#define REGISTERINVARIANT(name, value) \
+  PERF::getInvariants()[#name] = (double) (value);
 
-#define DR(v) tmpcf->put(v)
-#define DD(v) tmpcf->put(v)
-#define DN(v) tmpcf->put(v)
-#define IR(v) tmpcf->put(v)
-#define ID(v) tmpcf->put(v)
-#define IN(v) tmpcf->put(v)
-
-#endif // PERF_DISABLE
-
-#endif // eperf_h
+#endif // perf_h
