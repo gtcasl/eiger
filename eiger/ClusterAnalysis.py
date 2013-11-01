@@ -21,7 +21,12 @@ class KMeans:
         Constructs a K-Means cluster analysis pass for an N-by-P matrix, where N is the number of
         observations of dimension P
         """
-        self.data = data
+        self.means = np.mean(data, axis=0)
+        data = data - self.means
+        self.stdevs = np.std(data, axis=0, ddof=1)
+        self.stdevs[self.stdevs==0.0] = 1.0
+
+        self.data = data / self.stdevs
         self.k = k
         self.N = self.data.shape[0]
         self.maxIterations = maxIterations
@@ -122,8 +127,9 @@ class KMeans:
         """
         Finds which cluster is closest to each row in experiment
         """
+        data = (experiment - self.means) / self.stdevs
         winners = []
-        for e in experiment:
+        for e in data:
             e = np.matrix(e)
             mindist = float('inf')
             for c,cluster in enumerate(self.centers):
