@@ -100,8 +100,8 @@ def run(args):
             for dim in range(kmeans.centers.shape[1]):
                 modelfile.write("%s," % kmeans.centers[0,i])
             modelfile.write(')\n')
-            models[i].toFile(modelfile)
-            print "Model: " + models[i].toString()
+            modelfile.write(repr(models[i]))
+            print "Model: " + str(models[i])
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
        
