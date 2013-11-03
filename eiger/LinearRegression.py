@@ -116,6 +116,31 @@ class Model:
         else:
             raise ValueError('Invalid function encoding')
 
+    def stringify(self,function):
+        func = function.split()
+        if(func[0] == '0'):
+            return '1'
+        elif(func[0] == '1'):
+            return 'x[%s]^%s' % (int(func[1]), float(func[2]))
+        elif(func[0] == '2'):
+            return 'x[%s] * x[%s]' % (int(func[1]), int(func[2]))
+        elif(func[0] == '3'):
+            return 'sqrt(x[%s])' % int(func[1])
+        elif(func[0] == '4'):
+            return 'log(|x[%s]|)' % int(func[1])
+        elif(func[0] == '5'):
+            return '1/x[%s]' % int(func[1])
+        else:
+            raise ValueError('Invalid function encoding')
+    
+    def toString(self):
+        result = ""
+        for weight,function in zip(self.weights, self.functions):
+            # print "weight * stringify(function) + "
+            result += str(weight) + " * " + self.stringify(function) + " + "
+        # trim last 3 chars
+        return result[:-3]
+
 #
 class LinearRegression:
     """
