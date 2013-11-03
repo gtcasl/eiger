@@ -101,6 +101,7 @@ def run(args):
                 modelfile.write("%s," % kmeans.centers[0,i])
             modelfile.write(')\n')
             models[i].toFile(modelfile)
+            print "Model: " + models[i].toString()
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
        
