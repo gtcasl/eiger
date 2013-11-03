@@ -90,25 +90,17 @@ class Model:
             self.functions.append(cursor.fetchall()[0][0])
             self.weights.append(float(row[1]))
 
-    def toFile(self, fid):
+    def __repr__(self):
         """
         Writes out this performance model to the given file descriptor.
         """
-        fid.write("[%s]" % (len(self.functions),))
-        fid.write("(")
-        for x in self.weights:
-            fid.write("%r," % (x,))
-        fid.write(")\n")
-        for x in self.functions:
-            fid.write("%r\n" % (x,))
+        weight_repr = repr(self.weights)[1:-1]
+        func_repr = repr(self.functions)[1:-1].replace(', ', '\n')
+        return "[%r](%s)\n%s" % (len(self.functions), weight_repr, func_repr)
 
-    def toString(self):
-        result = ""
-        for predictor in zip(self.weights, self.functions):
-            # print "weight * stringify(function) + "
-            result += "%.3e * %s + " % predictor
-        # trim last 3 chars
-        return result[:-3]
+    def __str__(self):
+        result = ''.join(["%.3e * %s + " % pred for pred in zip(self.weights, self.functions)])
+        return result[:-3] #get rid of trailing ' + ' string
 
 #
 class LinearRegression:
