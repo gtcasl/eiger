@@ -13,6 +13,21 @@ import copy
 import math
 import MySQLdb
 
+class Function:
+    """ 
+    Containter for managing different representations of model functions 
+    """
+    def __init__(self, func, encoded, readible=None):
+        self.encoded = encoded
+        self.func = func
+        self.readible = encoded if readible==None else readible
+    def __str__(self):
+        return self.readible
+    def __repr__(self):
+        return self.encoded
+    def __call__(self, vec):
+        return self.func(vec)
+
 class Model:
     """
     An instance that includes both a vector of functions and a vector of weights.
@@ -32,7 +47,7 @@ class Model:
 
         returns U, an np.ndarray of floats
         """
-        U = np.array([self._decode(F)(T) for F in self.functions])
+        U = np.array([F(T) for F in self.functions])
         return U
     
     #
@@ -82,62 +97,16 @@ class Model:
         fid.write("[%s]" % (len(self.functions),))
         fid.write("(")
         for x in self.weights:
-            fid.write("%s," % (x,))
+            fid.write("%r," % (x,))
         fid.write(")\n")
         for x in self.functions:
-            fid.write("%s\n" % (x,))
+            fid.write("%r\n" % (x,))
 
-    #
-    def _decode(self, F):
-        """
-        Given an encoded string F, return a lambda expression evaluating that function
-
-        function encoding is as follows:
-        0 - f(x,c) = 1
-        1 - f(x,c,n) = x[c]^n
-        2 - f(x,c1,c2) = x[c1] * x[c2]
-        3 - f(x,c) = sqrt(x[c])
-        4 - f(x,c) = log(x[c])
-        5 - f(x,c) = 1/x[c]
-        """
-        func = F.split()
-        if(func[0] == '0'):
-            return lambda x: 1
-        elif(func[0] == '1'):
-            return lambda x: math.pow(abs(x[int(func[1])]),float(func[2])) if x[int(func[1])] != 0.0 else 1.0
-        elif(func[0] == '2'):
-            return lambda x: x[int(func[1])] * x[int(func[2])]
-        elif(func[0] == '3'):
-            return lambda x: math.sqrt(abs(x[int(func[1])]))
-        elif(func[0] == '4'):
-            return lambda x: math.log(abs(x[int(func[1])]), 2) if x[int(func[1])] != 0.0 else 1.0
-        elif(func[0] == '5'):
-            return lambda x: 1/float(x[int(func[1])]) if x[int(func[1])] != 0.0 else 1.0
-        else:
-            raise ValueError('Invalid function encoding')
-
-    def stringify(self,function):
-        func = function.split()
-        if(func[0] == '0'):
-            return '1'
-        elif(func[0] == '1'):
-            return 'x[%s]^%s' % (int(func[1]), float(func[2]))
-        elif(func[0] == '2'):
-            return 'x[%s] * x[%s]' % (int(func[1]), int(func[2]))
-        elif(func[0] == '3'):
-            return 'sqrt(x[%s])' % int(func[1])
-        elif(func[0] == '4'):
-            return 'log(|x[%s]|)' % int(func[1])
-        elif(func[0] == '5'):
-            return '1/x[%s]' % int(func[1])
-        else:
-            raise ValueError('Invalid function encoding')
-    
     def toString(self):
         result = ""
-        for weight,function in zip(self.weights, self.functions):
+        for predictor in zip(self.weights, self.functions):
             # print "weight * stringify(function) + "
-            result += str(weight) + " * " + self.stringify(function) + " + "
+            result += "%.3e * %s + " % predictor
         # trim last 3 chars
         return result[:-3]
 
@@ -189,7 +158,7 @@ class LinearRegression:
         while not done:
             testModel = Model([metric[model[i]] for i,metric in enumerate(pool)], None)
             try:
-                lookup = np.matrix([[testModel._decode(f)(x.flat) for f in testModel.functions] for x in self.X])
+                lookup = np.matrix([[f(x.flat) for f in testModel.functions] for x in self.X])
                 M, rsquared = self.search_regression(threshold,testModel,lookup,pool)
                 trials += 1
                 if trials == 1 or squaredError < bestSquaredError:
@@ -342,13 +311,16 @@ class LinearRegression:
 
     def powerLadder(self, Xshape):
         def powerHelper(i,n):
-            return "1 %s %s" % (i,n)
+            fn = lambda x: math.pow(abs(x[int(i)]),float(n)) if x[int(i)] != 0.0 else 1.0
+            return Function(fn, "1 %s %s" % (i,n), 'x[%s]^%s' % (i,n))
         def logHelper(i):
-            return "4 %s" % (i,)
+            fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
+            return Function(fn, "4 %s" % i, 'log(|x[%s]|)' % i)
         def crossHelper(i, j):
-            return "2 %s %s" % (i,j)
+            fn = lambda x: x[int(i)] * x[int(j)]
+            return Function(fn, "2 %s %s" % (i,j), 'x[%s] * x[%s]' % (i,j))
 
-        pool = [["0"]]
+        pool = [[Function(lambda x: 1.0, "0", "1")]]
         for i in range(Xshape[1]):
             pool.append([powerHelper(i, -2),])
             pool.append([powerHelper(i, -1),])
