@@ -38,22 +38,13 @@ class Model:
         self.functions = functions
         self.weights = weights
 
-    def evaluate(self, T):
-        """
-        Given a vector of metrics, determine the evaluation of all the functions
-
-        returns U, an np.ndarray of floats
-        """
-        U = np.array([F(T) for F in self.functions])
-        return U
-    
     #
     def poll(self, T):
         """
         Given a model and weights, returns a data set evaluted by the model
         """
-        U = self.evaluate(T)
-        return math.fabs(np.dot(U, self.weights))
+        U = np.array([[function(row) for function in self.functions] for row in T])
+        return np.dot(U, self.weights)
 
     def __repr__(self):
         """
