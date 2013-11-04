@@ -144,8 +144,7 @@ def _runExperiment(kmeans, models, rotation_matrix,
     for i,cluster in enumerate(clusters):
         if len(cluster) == 0:
             continue
-        prediction[cluster,:] = np.array([models[i].poll(x) 
-                                          for x in rotated_profile[cluster,:]])
+        prediction[cluster,:] = abs(models[i].poll(rotated_profile[cluster,:]))
    
     if(args['plot_performance_line']):
         _figureline(performance, prediction)
