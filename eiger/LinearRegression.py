@@ -97,41 +97,12 @@ class LinearRegression:
         if threshold == None:
             threshold = 0
         
-        model = [0 for i in range(len(pool))]
+        # lookup: n_trials x n_functions
+        lookup = np.matrix([[f(x.flat) for f in pool] for x in self.X])
+        model, rsquared = self.search_regression(threshold,lookup,pool)
+        return (model, rsquared)
 
-        q = 0
-        done = False
-        trials = 0
-        accepted = 0
-        while not done:
-            testModel = Model([metric[model[i]] for i,metric in enumerate(pool)], None)
-            try:
-                lookup = np.matrix([[f(x.flat) for f in testModel.functions] for x in self.X])
-                M, rsquared = self.search_regression(threshold,testModel,lookup,pool)
-                trials += 1
-                if trials == 1 or squaredError < bestSquaredError:
-                    bestModel = M
-                    bestRsquared = rsquared
-                    accepted += 1
-            except np.linalg.linalg.LinAlgError:
-                # some models will yield singular matrices - That's fine, just ignore them.
-                pass
-            model[q] += 1
-            carry = False
-            while not done and model[q] >= len(pool[q]):
-                carry = True
-                q += 1
-                if q < len(pool):
-                    model[q] += 1
-                else:
-                    done = True
-            if carry and not done:
-                for p in range(0, q):
-                    model[p] = 0
-                q = 0
-        return (bestModel, bestRsquared, trials) if accepted else (None, None, trials)
-
-    def search_regression(self, threshold, model, lookup, pool):
+    def search_regression(self, threshold, lookup, pool):
         """
         Performs ordinary least-squares linear regression using the data set X and the
         indicated models.
@@ -139,16 +110,19 @@ class LinearRegression:
         returns (model functions, beta, rsquared)
         """
 
+        original_pool = copy.copy(pool)
+
         M = []
         Beta = []
         done = False
         model_r2_adj = float('-inf')
+        model_r2 = 0
 #       print "START LEN: ", str(len(model.functions))
         while(not done):
             max_adj = float('-inf')
-            for func in model.functions:
-                candidate = Model(M+[func,],None)
-                (m,rsquared) = self._evaluateModel(candidate,lookup,pool)
+            for func in pool:
+                candidate = Model(M+[func,])
+                (m,rsquared) = self._evaluateModel(candidate,lookup,original_pool)
                 n = len(self.X)
                 k = len(candidate.functions)
                 rsquared_adjusted = 1 - (1-rsquared) * (n - 1) / (n - k - 1)
@@ -159,23 +133,22 @@ class LinearRegression:
                     new_beta = m.weights
 
             if(max_adj != float('-inf') and (max_adj - model_r2_adj) > threshold):
-#           print "max_adj: ",str(max_adj)
-#           if(max_adj  > threshold):
                 M.append(new_function)
-                model.functions.remove(new_function)
+                pool.remove(new_function)
                 model_r2_adj = max_adj
+                model_r2 = new_r2
                 Beta = new_beta
             else:
                 done = True
 
-        return (Model(M, Beta), model_r2_adj)
+        return (Model(M, Beta), model_r2)
     
     def _evaluateModel(self, model, lookup, pool):
         """
         Evaluates the given model.
         """
 #       U = lookup[:,[pool.index([i]) for i in model.functions]]
-        U = np.take(lookup, [pool.index([i]) for i in model.functions], axis=1, mode='clip')
+        U = np.take(lookup, [pool.index(i) for i in model.functions], axis=1, mode='clip')
         (b, residues, rank, s) = np.linalg.lstsq(U,self.Y)
         (n,k) = np.shape(U)
         yhat = np.dot(U, b)
@@ -268,17 +241,17 @@ class LinearRegression:
             fn = lambda x: x[int(i)] * x[int(j)]
             return Function(fn, "2 %s %s" % (i,j), 'x[%s] * x[%s]' % (i,j))
 
-        pool = [[Function(lambda x: 1.0, "0", "1")]]
+        pool = [Function(lambda x: 1.0, "0", "1")]
         for i in range(Xshape[1]):
-            pool.append([powerHelper(i, -2),])
-            pool.append([powerHelper(i, -1),])
-            pool.append([powerHelper(i, -.5),])
-            pool.append([logHelper(i),])
-            pool.append([powerHelper(i, .5),])
-            pool.append([powerHelper(i, 1),])
-            pool.append([powerHelper(i, 2),])
+            pool.append(powerHelper(i, -2))
+            pool.append(powerHelper(i, -1))
+            pool.append(powerHelper(i, -.5))
+            pool.append(logHelper(i))
+            pool.append(powerHelper(i, .5))
+            pool.append(powerHelper(i, 1))
+            pool.append(powerHelper(i, 2))
             for j in range(i,Xshape[1]):
-                pool.append([crossHelper(i,j),])
+                pool.append(crossHelper(i,j))
 
         return pool
     
