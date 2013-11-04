@@ -16,6 +16,7 @@ import math
 import tempfile
 import shutil
 import os
+from ast import literal_eval
 
 from sklearn.cluster import KMeans
 from eiger import database, PCA, LinearRegression
@@ -24,108 +25,139 @@ def run(args):
     """
     Interface into Eiger model generation/polling/serialization/printing/etc.
     """
-    print "Loading training data..."
-    training_DC = database.DataCollection(args['training_datacollection'], 
-                                          db=args['db'], 
-                                          user=args['user'], 
-                                          passwd=args['passwd'],
-                                          host=args['host'])
-    metric_ids = training_DC.metricIndexByType('deterministic', 
-                                               'nondeterministic')
-    metric_names = [training_DC.metrics[id][0] for id in metric_ids]
-    try:
-        training_profile = training_DC.profile[:,metric_ids]
-    except IndexError:
-        print "Unable to make model for empty data collection. Aborting..."
-        return
-    for idx,metric in enumerate(training_DC.metrics):
-        if(metric[0] == args['performance_metric']):
-            performance_metric_id = idx
-    training_performance = training_DC.profile[:,performance_metric_id]
+    if args['input'] == None:
+        print "Loading training data..."
+        training_DC = database.DataCollection(args['training_datacollection'], 
+                                              db=args['db'], 
+                                              user=args['user'], 
+                                              passwd=args['passwd'],
+                                              host=args['host'])
+        metric_ids = training_DC.metricIndexByType('deterministic', 
+                                                   'nondeterministic')
+        metric_names = [training_DC.metrics[id][0] for id in metric_ids]
+        try:
+            training_profile = training_DC.profile[:,metric_ids]
+        except IndexError:
+            print "Unable to make model for empty data collection. Aborting..."
+            return
+        for idx,metric in enumerate(training_DC.metrics):
+            if(metric[0] == args['performance_metric']):
+                performance_metric_id = idx
+        training_performance = training_DC.profile[:,performance_metric_id]
 
-    #pca
-    training_pca = PCA.PCA(training_profile)
-    rotation_matrix = training_pca.nonzeroComponents()
-    rotated_training_profile = np.dot(training_profile, rotation_matrix)
+        #pca
+        training_pca = PCA.PCA(training_profile)
+        rotation_matrix = training_pca.nonzeroComponents()
+        rotated_training_profile = np.dot(training_profile, rotation_matrix)
 
-    print "Visualizing PCA..."
-    if(args['plot_scree']):
-        print training_pca.loadings
-        PCA.PlotScree(training_pca.loadings, log=False, 
-                          title="PCA Scree Plot")
-    if(args['plot_pcs_per_metric']):
-        PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
-                             title="PCs Per Metric")
-    if(args['plot_metrics_per_pc']):
-        PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
-                             title="Metrics Per PC")
-    #kmeans
-    n_clusters = args['clusters']
-    kmeans = KMeans(n_clusters)
-    means = np.mean(rotated_training_profile, axis=0)
-    stdevs = np.std(rotated_training_profile - means, axis=0, ddof=1)
-    stdevs[stdevs==0.0] = 1.0
-    clusters = kmeans.fit_predict((rotated_training_profile - means)/stdevs)
+        print "Visualizing PCA..."
+        if(args['plot_scree']):
+            print training_pca.loadings
+            PCA.PlotScree(training_pca.loadings, log=False, 
+                              title="PCA Scree Plot")
+        if(args['plot_pcs_per_metric']):
+            PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
+                                 title="PCs Per Metric")
+        if(args['plot_metrics_per_pc']):
+            PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
+                                 title="Metrics Per PC")
+        #kmeans
+        n_clusters = args['clusters']
+        kmeans = KMeans(n_clusters)
+        means = np.mean(rotated_training_profile, axis=0)
+        stdevs = np.std(rotated_training_profile - means, axis=0, ddof=1)
+        stdevs[stdevs==0.0] = 1.0
+        clusters = kmeans.fit_predict((rotated_training_profile - means)/stdevs)
 
-    # reserve a vector for each model created per cluster
-    models = [0] * len(clusters)
+        # reserve a vector for each model created per cluster
+        models = [0] * len(clusters)
 
-    print "Modeling..."
-    with tempfile.NamedTemporaryFile(delete=False) as modelfile:
-        modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
-        modelfile.write("[%s](%s)\n" % 
-                (len(means), ','.join([str(mean) for mean in means.tolist()])))
-        modelfile.write("[%s](%s)\n" % 
-                (len(stdevs), ','.join([str(stdev) for stdev in stdevs.tolist()])))
-        modelfile.write("[%s,%s]" % rotation_matrix.shape)
-        modelfile.write("(%s)\n" % 
-                        ','.join(["(%s)" % 
-                            ','.join([str(elem) for elem in row]) 
-                            for row in rotation_matrix.tolist()]))
-        for i in range(n_clusters):
-            cluster_profile = rotated_training_profile[clusters==i,:]
-            cluster_performance = training_performance[clusters==i,:]
-            regression = LinearRegression.LinearRegression(cluster_profile,
-                                                           cluster_performance)
-            pool = LinearRegression.powerLadderPool(cluster_profile.shape)
-            (models[i], r_squared) = regression.select(pool, 
-                                                    threshold=args['threshold'])
-            
-            # dump model to file
-            modelfile.write('Model %s\n' % i)
-            modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
-                                            ','.join([str(center) for center in
-                                                kmeans.cluster_centers_[i].tolist()])))
-            modelfile.write(repr(models[i]))
-            modelfile.write('\n') # need a trailing newline
-            print "Model: " + str(models[i])
+        print "Modeling..."
+        with tempfile.NamedTemporaryFile(delete=False) as modelfile:
+            modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
+            modelfile.write("[%s](%s)\n" % 
+                    (len(means), ','.join([str(mean) for mean in means.tolist()])))
+            modelfile.write("[%s](%s)\n" % 
+                    (len(stdevs), ','.join([str(stdev) for stdev in stdevs.tolist()])))
+            modelfile.write("[%s,%s]" % rotation_matrix.shape)
+            modelfile.write("(%s)\n" % 
+                            ','.join(["(%s)" % 
+                                ','.join([str(elem) for elem in row]) 
+                                for row in rotation_matrix.tolist()]))
+            for i in range(n_clusters):
+                cluster_profile = rotated_training_profile[clusters==i,:]
+                cluster_performance = training_performance[clusters==i,:]
+                regression = LinearRegression.LinearRegression(cluster_profile,
+                                                               cluster_performance)
+                pool = LinearRegression.powerLadderPool(cluster_profile.shape)
+                (models[i], r_squared) = regression.select(pool, 
+                                                        threshold=args['threshold'])
+                
+                # dump model to file
+                modelfile.write('Model %s\n' % i)
+                modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
+                                                ','.join([str(center) for center in
+                                                    kmeans.cluster_centers_[i].tolist()])))
+                modelfile.write(repr(models[i]))
+                modelfile.write('\n') # need a trailing newline
+                print "Model: " + str(models[i])
 
-            print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
-       
-    # if we want to save the model file, copy it now
-    if args['output'] == True:
-        shutil.move(modelfile.name, training_DC.name + '.model')
+                print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
+           
+        # if we want to save the model file, copy it now
+        if args['output'] == True:
+            shutil.move(modelfile.name, training_DC.name + '.model')
+        else:
+            os.remove(modelfile.name)
+
+        if(args['test_fit']):
+            print "Testing fit..."
+            _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
+                           training_DC, args, metric_names)
     else:
-        os.remove(modelfile.name)
+        lines = iter(open(args['input'],'r').read().splitlines())
+        n_params = int(lines.next())
+        metric_names = [lines.next() for i in range(n_params)]
+        means = _stringToArray(lines.next())
+        stdevs = _stringToArray(lines.next())
+        rotation_matrix = _stringToArray(lines.next())
+        models = []
+        centroids = []
+        try:
+            while True:
+                name = lines.next() # kill a line
+                centroids.append(_stringToArray(lines.next()))
+                weights = _stringToArray(lines.next())
+                functions = [LinearRegression.stringToFunction(lines.next()) 
+                             for i in range(weights.shape[0])]
+                models.append(LinearRegression.Model(functions, weights))
+        except StopIteration:
+            pass
+        kmeans = KMeans(len(centroids))
+        kmeans.cluster_centers_ = np.array(centroids)
 
-
-    if(args['test_fit']):
-        print "Testing fit..."
-        _runExperiment(kmeans, models, rotation_matrix, training_DC, args,
-                       metric_names)
-    if(args['experiment_datacollection']):
+    if(args['experiment_datacollection'] or args['test_fit']):
+        DC = args['experiment_datacollection'] if \
+            args['experiment_datacollection'] else args['training_datacollection']
         print "Running experiment on data collection %s..." % \
-              (args['experiment_datacollection'],)
-        experiment_DC = database.DataCollection(args['experiment_datacollection'], 
+              (DC,)
+        experiment_DC = database.DataCollection(DC, 
                                                 db=args['db'], 
                                                 user=args['user'], 
                                                 passwd=args['passwd'],
                                                 host=args['host'])
-        _runExperiment(kmeans, models, rotation_matrix, experiment_DC, args, 
-                       metric_names)
+        _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
+                       experiment_DC, args, metric_names)
     print "Done!"
 
-def _runExperiment(kmeans, models, rotation_matrix, 
+def _stringToArray(string):
+    """
+    Parse string of form [len](number,number,number,...) to a numpy array.
+    """
+    just_values = string[string.find('('):]
+    return np.array(literal_eval(just_values))
+
+def _runExperiment(kmeans, means, stdevs, models, rotation_matrix, 
                    experiment_DC, args, metric_names):
     expr_metric_ids = experiment_DC.metricIndexByType('deterministic', 
                                                       'nondeterministic')
@@ -334,6 +366,10 @@ def main():
     """
     MODEL CONSTRUCTION ARGUMENTS
     """
+    parser.add_argument('--input', '-i',
+                        type=str,
+                        default=None,
+                        help='File name of model file to be read and used for running experiments.')
     parser.add_argument('--output', '-o',
                         action='store_true',
                         default=False,
