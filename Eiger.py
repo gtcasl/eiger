@@ -150,6 +150,9 @@ def _runExperiment(kmeans, models, rotation_matrix,
     for i in range(len(kmeans.cluster_centers_)):
         prediction[clusters==i,:] = abs(models[i].poll(rotated_profile[clusters==i,:]))
 
+    if(args['show_prediction']):
+        print "Actual\t\tPredicted"
+        print '\n'.join("%s\t%s" % x for x in zip(performance,prediction))
     if(args['plot_performance_line']):
         _figureline(performance, prediction)
     if(args['plot_performance_scatter']):
@@ -260,6 +263,10 @@ def main():
                         action='store_true',
                         default=False,
                         help='If set will test the model fit against the training data.')
+    parser.add_argument('--show-prediction',
+                        action='store_true',
+                        default=False,
+                        help='If set, send the actual and predicted values to stdout.')
 
     """
     EXPERIMENT DATA ARGUMENTS
