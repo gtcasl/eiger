@@ -168,28 +168,53 @@ class LinearRegression:
 
         return (Model(model.functions, [x for x in b.flat]), rsquared)
 
-def powerLadderPool(Xshape):
-    def powerHelper(i,n):
-        fn = lambda x: math.pow(abs(x[int(i)]),float(n)) if x[int(i)] != 0.0 else 1.0
-        return Function(fn, "1 %s %s" % (i,n), 'x[%s]^%s' % (i,n))
-    def logHelper(i):
-        fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
-        return Function(fn, "4 %s" % i, 'log(|x[%s]|)' % i)
-    def crossHelper(i, j):
-        fn = lambda x: x[int(i)] * x[int(j)]
-        return Function(fn, "2 %s %s" % (i,j), 'x[%s] * x[%s]' % (i,j))
+def stringToFunction(encoded_string):
+    """
+    Convert an encoded function string to a Function object.
 
-    pool = [Function(lambda x: 1.0, "0", "1")]
+    Please note that if you want to add or change a function, you need to add
+    it to this list, making sure to preserve the order with respect to the
+    first parameter of the encoding.
+    """
+    function_generators = [identityFunction,
+                           powerFunction,
+                           crossFunction,
+                           sqrtFunction,
+                           logFunction]
+    encoding = encoded_string.split()
+    return function_generators[int(encoding[0])](*encoding[1:])
+
+def identityFunction():
+    return Function(lambda x: 1.0, '0', '1')
+
+def powerFunction(i,n):
+    fn = lambda x: math.pow(abs(x[int(i)]),float(n)) if x[int(i)] != 0.0 else 1.0
+    return Function(fn, '1 %s %s' % (i,n), 'x[%s]^%s' % (i,n))
+
+def crossFunction(i,j):
+    fn = lambda x: x[int(i)] * x[int(j)]
+    return Function(fn, '2 %s %s' % (i,j), 'x[%s] * x[%s]' % (i,j))
+
+def sqrtFunction(i):
+    fn = lambda x: math.sqrt(abs(x[int(i)]))
+    return Function(fn, '3 %s' % i, 'sqrt(|x[%s]|)' % i)
+
+def logFunction(i):
+    fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
+    return Function(fn, '4 %s' % i, 'log(|x[%s]|)' % i)
+
+def powerLadderPool(Xshape):
+    pool = [identityFunction()]
     for i in range(Xshape[1]):
-        pool.append(powerHelper(i, -2))
-        pool.append(powerHelper(i, -1))
-        pool.append(powerHelper(i, -.5))
-        pool.append(logHelper(i))
-        pool.append(powerHelper(i, .5))
-        pool.append(powerHelper(i, 1))
-        pool.append(powerHelper(i, 2))
+        pool.append(powerFunction(i, -2))
+        pool.append(powerFunction(i, -1))
+        pool.append(powerFunction(i, -.5))
+        pool.append(logFunction(i))
+        pool.append(powerFunction(i, .5))
+        pool.append(powerFunction(i, 1))
+        pool.append(powerFunction(i, 2))
         for j in range(i,Xshape[1]):
-            pool.append(crossHelper(i,j))
+            pool.append(crossFunction(i,j))
 
     return pool
     
