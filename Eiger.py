@@ -82,7 +82,7 @@ def run(args):
             cluster_performance = training_performance[cluster,:]
             regression = LinearRegression.LinearRegression(cluster_profile,
                                                            cluster_performance)
-            pool = regression.powerLadder(cluster_profile.shape)
+            pool = LinearRegression.powerLadderPool(cluster_profile.shape)
             (models[i], r_squared) = regression.select(pool, 
                                                     threshold=args['threshold'])
             

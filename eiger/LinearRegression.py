@@ -168,111 +168,30 @@ class LinearRegression:
 
         return (Model(model.functions, [x for x in b.flat]), rsquared)
 
-    def modelInputs(self, X, model = None):
-        """
-        Given inputs and a model, constructs a design matrix
-        """
-        return np.matrix([[eval(F)(np.asarray(x.flat)) for F in model] for x in X]) if model != None else X
-    
-    def polynomialPool(self, order=[]):
-        """
-        Generate a pool of polynomial functions of the given order
-        """
-        def helper(n, i):
-            return "lambda x: math.pow(x[%s], %s)" % (i,n)
-        return [[helper(u, p) for u in range(0, i+1)] for p,i in enumerate(order)] # the helper is obligatory
-    
-    def quadraticPlusCrossTerms(self, Xshape, crossComponents):
-        """
-        Creates a quadratic matrix plus cross terms from the linear section 
+def powerLadderPool(Xshape):
+    def powerHelper(i,n):
+        fn = lambda x: math.pow(abs(x[int(i)]),float(n)) if x[int(i)] != 0.0 else 1.0
+        return Function(fn, "1 %s %s" % (i,n), 'x[%s]^%s' % (i,n))
+    def logHelper(i):
+        fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
+        return Function(fn, "4 %s" % i, 'log(|x[%s]|)' % i)
+    def crossHelper(i, j):
+        fn = lambda x: x[int(i)] * x[int(j)]
+        return Function(fn, "2 %s %s" % (i,j), 'x[%s] * x[%s]' % (i,j))
 
-        """
-        def helper(i, n):
-            f = "1 %s %s" % (i,n)
-            return f
-        def helperCross(i, j):
-            f = "2 %s %s" % (i,j)
-            return f
+    pool = [Function(lambda x: 1.0, "0", "1")]
+    for i in range(Xshape[1]):
+        pool.append(powerHelper(i, -2))
+        pool.append(powerHelper(i, -1))
+        pool.append(powerHelper(i, -.5))
+        pool.append(logHelper(i))
+        pool.append(powerHelper(i, .5))
+        pool.append(powerHelper(i, 1))
+        pool.append(powerHelper(i, 2))
+        for j in range(i,Xshape[1]):
+            pool.append(crossHelper(i,j))
 
-        def helperSqrt(i):
-            f = "3 %s" % (i,)
-            return f
-
-        def helperLog(i):
-            f = "4 %s" % (i,)
-            return f
-
-        def helperReciprocal(i):
-            f = "5 %s" % (i,)
-            return f
-
-        def helperPow(i):
-            f = "6 %s" % (i,)
-            return f
-            
-        pool = [["0",]]
-        for i in range(Xshape[1]):
-            pool.append([helper(i, 1),])
-            pool.append([helper(i, 2),])
-            pool.append([helperLog(i),])
-            pool.append([helperReciprocal(i),])
-            pool.append([helperSqrt(i),])
-            for j in range(i,Xshape[1]):
-                pool.append([helperCross(i,j),])
-
-        return pool
-
-    def linearPool(self, Xshape):
-        def helper(i):
-            return "1 %s 1" % i
-        pool = [["0"]]
-        for i in range(Xshape[1]):
-            pool.append([helper(i),])
-        return pool
-
-    def powerLadder(self, Xshape):
-        def powerHelper(i,n):
-            fn = lambda x: math.pow(abs(x[int(i)]),float(n)) if x[int(i)] != 0.0 else 1.0
-            return Function(fn, "1 %s %s" % (i,n), 'x[%s]^%s' % (i,n))
-        def logHelper(i):
-            fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
-            return Function(fn, "4 %s" % i, 'log(|x[%s]|)' % i)
-        def crossHelper(i, j):
-            fn = lambda x: x[int(i)] * x[int(j)]
-            return Function(fn, "2 %s %s" % (i,j), 'x[%s] * x[%s]' % (i,j))
-
-        pool = [Function(lambda x: 1.0, "0", "1")]
-        for i in range(Xshape[1]):
-            pool.append(powerHelper(i, -2))
-            pool.append(powerHelper(i, -1))
-            pool.append(powerHelper(i, -.5))
-            pool.append(logHelper(i))
-            pool.append(powerHelper(i, .5))
-            pool.append(powerHelper(i, 1))
-            pool.append(powerHelper(i, 2))
-            for j in range(i,Xshape[1]):
-                pool.append(crossHelper(i,j))
-
-        return pool
-    
-    def quadraticDesignMatrix(self, Xshape):
-        """
-        Returns a model pool consiting of a column of 1s, of the input matrix, and the squared elements of
-        input matrix.
-        """
-        def helper(n, i):
-            f = "lambda x: math.pow(x[%s], %s)" % (i,n)
-#           print "math.pow(x[%s], %s) = %s" % (i, n, f)
-            return f
-
-        pool = ["lambda x: 1.0",]
-        for i in range(Xshape[1]):
-            pool.append(helper(1, i))
-        for i in range(Xshape[1]):
-            pool.append(helper(2, i))
-        
-#       print pool
-        return pool
+    return pool
     
 #################################################################################################
 #
