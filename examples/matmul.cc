@@ -28,6 +28,7 @@ float get_elapsed(timespec *start, timespec *end){
 		res += end->tv_sec - start->tv_sec;
 		res += (end->tv_nsec - start->tv_nsec) / 1000000000.0f;
 	}
+  return res;
 }
 
 /*
@@ -39,7 +40,7 @@ float get_elapsed(timespec *start, timespec *end){
 int main(){
 
 	int n; 
-	int max = 1000; // largest matrix
+	int max = 500; // largest matrix
 	float **A, **B, **C;
 	int i,j,k;
 	float sum;
