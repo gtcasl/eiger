@@ -83,7 +83,7 @@ def run(args):
             regression = LinearRegression.LinearRegression(cluster_profile,
                                                            cluster_performance)
             pool = regression.powerLadder(cluster_profile.shape)
-            (models[i], r_squared, attempts) = regression.select(pool, 
+            (models[i], r_squared) = regression.select(pool, 
                                                     threshold=args['threshold'])
             
             # dump model to file
