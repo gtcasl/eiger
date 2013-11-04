@@ -149,5 +149,4 @@ class DataCollection:
 if __name__ == "__main__":
     d = DataCollection('Nbuild', 
             host='localhost',user='root',passwd='root',db='minimd')
-    pass
 

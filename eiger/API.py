@@ -125,7 +125,7 @@ class Execution:
 
     def commit(self, db):
         cursor = db.cursor()
-        cursor.execute("""INSERT IGNORE INTO executions(trialID, machineID) VALUE(%s,%S)""" % (self.trialID, self.machineID))
+        cursor.execute("""INSERT IGNORE INTO executions(trialID, machineID) VALUE(%s,%s)""" % (self.trialID, self.machineID))
         self._ID = db.insert_id()
 
 class Trial:
@@ -349,7 +349,7 @@ class DataCollection:
         profile = []
         metrics = []
         usedTrials = []
-        for i, trialID in enumerate(sorted(self.trials.keys())):
+        for trialID in sorted(self.trials.keys()):
             trial = self.trials[trialID]
             dataset = self.datasets[trial.datasetID]
 

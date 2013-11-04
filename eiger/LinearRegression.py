@@ -150,7 +150,6 @@ class LinearRegression:
 #       U = lookup[:,[pool.index([i]) for i in model.functions]]
         U = np.take(lookup, [pool.index(i) for i in model.functions], axis=1, mode='clip')
         (b, residues, rank, s) = np.linalg.lstsq(U,self.Y)
-        (n,k) = np.shape(U)
         yhat = np.dot(U, b)
         ybar = np.average(self.Y)
 
@@ -239,10 +238,6 @@ if __name__ == "__main__":
 
     #
     def testTwoMetrics():
-        from mpl_toolkits.mplot3d import Axes3D
-        import numpy as np
-        import matplotlib.pyplot as plt
-        
         U = lambda x,y: 0.25*x*x - 0.75 * y
         
         X = None
@@ -264,7 +259,7 @@ if __name__ == "__main__":
         """
         Simple demonstration with a quadratic model and one metric
         """
-        from pylab import plot, xlabel, ylabel, show
+        from pylab import plot, show
     
         U = lambda x: 2.5*x*x*x
     
@@ -288,7 +283,6 @@ if __name__ == "__main__":
         plot(xx, zz, 'x', color='b')
         plot(xx, yy, 'o', color='b')
         show()
-        pass
 
     testQuadraticModel()
 
