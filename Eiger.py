@@ -109,11 +109,6 @@ def run(args):
             shutil.move(modelfile.name, training_DC.name + '.model')
         else:
             os.remove(modelfile.name)
-
-        if(args['test_fit']):
-            print "Testing fit..."
-            _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
-                           training_DC, args, metric_names)
     else:
         lines = iter(open(args['input'],'r').read().splitlines())
         n_params = int(lines.next())
