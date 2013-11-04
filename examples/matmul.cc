@@ -72,7 +72,7 @@ int main(){
 	/*** End initialization ***/
 
 	/*** Connect to the Eiger database ***/
-	std::string location, name, user, pw;
+	std::string location, name, user, pw, dc_name;
 	std::cout << "Enter database location: ";
 	std::cin >> location;
 	std::cout << "Enter database name: ";
@@ -81,11 +81,13 @@ int main(){
 	std::cin >> user;
 	std::cout << "Enter database password: ";
 	std::cin >> pw;
+  std::cout << "Enter data collection name: ";
+  std::cin >> dc_name;
 
 	eiger::Connect(location, name, user, pw);
 	
 	/*** Setup all Eiger objects relating to this model ***/
-	eiger::DataCollection dc("test", "test dc");
+	eiger::DataCollection dc(dc_name, "test dc");
 	dc.commit();
 	eiger::Machine machine("test", "test machine");
 	machine.commit();
