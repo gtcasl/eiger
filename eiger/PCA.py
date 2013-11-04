@@ -28,7 +28,7 @@ class PCA:
             self.components = np.eye(0)
             self.loadings = np.zeros((0,))
             return
-        (rows,cols) = np.shape(self.X)
+        cols = np.shape(self.X)[1]
         try:
             np.seterr(all='ignore')
             self.Z = self.pretreat(self.X,scale)
@@ -59,7 +59,7 @@ class PCA:
         targetComponents - number of components to capture
         Returns (components, loadings, componentCount, captured variance)
         """
-        (rows, cols) = np.shape(self.X)
+        cols = np.shape(self.X)[1]
         maxComponents = cols if targetComponents == None else targetComponents
         maxVariance = 1.1 if targetVariance == None else targetVariance
         
@@ -84,7 +84,7 @@ class PCA:
         return (X - means, means)
         
     def pretreat(self, X, scale):   
-        Y, means = self.zeroMean(X)
+        Y = self.zeroMean(X)[0]
         if scale is True:
             std = np.std(Y,axis=0,ddof=1)
             #for dimensions with zero variance, we just want to keep whatever 
@@ -184,11 +184,11 @@ class VARIMAX:
         self.maxIterations = maxIterations
         self.Epsilon = Epsilon
         self.X = np.matrix(X)
-        pass
     
     def compute(self):
-        X = self.X.copy()
-        n, k = X.shape
+        import copy
+        X = copy.copy(self.X)
+        k = X.shape[1]
         converged = False
         iterations = 0
         variance = sum(sum(np.multiply(X, X), 1).T)[0,0]
@@ -208,7 +208,7 @@ class VARIMAX:
         return R, np.array(X)
 
     def _phi(self, A, k, l):
-        D, M = A.shape
+        D = A.shape[0]
         u = sum(np.power(A[:,k] + A[:,l] * (1.0j), 4))/D
         v = sum(np.power(A[:,k] + A[:,l] * (1.0j), 2))/D
         p = u - v*v
@@ -222,7 +222,6 @@ class VARIMAX:
         U = U * R
         A[:,k] = U[:,0]
         A[:,l] = U[:,1]
-        pass
 
     def sorted(self):
         """

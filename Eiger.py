@@ -34,7 +34,7 @@ def run(args):
                                               host=args['host'])
         metric_ids = training_DC.metricIndexByType('deterministic', 
                                                    'nondeterministic')
-        metric_names = [training_DC.metrics[id][0] for id in metric_ids]
+        metric_names = [training_DC.metrics[mid][0] for mid in metric_ids]
         try:
             training_profile = training_DC.profile[:,metric_ids]
         except IndexError:
@@ -156,7 +156,7 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
                    experiment_DC, args, metric_names):
     expr_metric_ids = experiment_DC.metricIndexByType('deterministic', 
                                                       'nondeterministic')
-    expr_metric_names = [experiment_DC.metrics[id][0] for id in expr_metric_ids]
+    expr_metric_names = [experiment_DC.metrics[mid][0] for mid in expr_metric_ids]
     if expr_metric_names != metric_names:
         print ("Training datacollection and experiment datacollection "
                "do not have matching metrics. Aborting...")
@@ -181,9 +181,9 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
         print "Actual\t\tPredicted"
         print '\n'.join("%s\t%s" % x for x in zip(performance,prediction))
     if(args['plot_performance_line']):
-        _figureline(performance, prediction)
+        _figureline(performance, prediction, args)
     if(args['plot_performance_scatter']):
-        _scatter(performance, prediction)
+        _scatter(performance, prediction, args)
     if(args['show_prediction_statistics']):
         mse = sum([(a-p)**2 for a,p in 
                    zip(performance, prediction)]) / len(performance)
@@ -196,14 +196,10 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
         print "Mean Squared Error: %s" % mse
         print "Root Mean Squared Error: %s" % rmse
 
-def _figureline(actual, prediction):
-    import os.path
+def _figureline(actual, prediction, args):
     plt.figure()
-    xx = range(0, len(prediction))
-    rects0 = []
-    rects1 = []
-    rects0 = plt.plot(actual,'r'+args['plot_line_marker_data'])
-    rects1 = plt.plot(prediction,'b'+args['plot_line_marker_pred'])
+    plt.plot(actual,'r'+args['plot_line_marker_data'])
+    plt.plot(prediction,'b'+args['plot_line_marker_pred'])
 
     if args['plot_identifier'] != 'NoName':
         plt.title(args['plot_identifier']+ " Eiger model (blue,"+args['plot_line_marker_pred']+") and training (red,"+args['plot_line_marker_data']+")")
@@ -218,8 +214,7 @@ def _figureline(actual, prediction):
     else:
         plt.show()
 
-def _scatter(actual, prediction):
-    import os.path
+def _scatter(actual, prediction, args):
     plt.figure()
     plt.plot(actual, prediction, 'b'+args['plot_scatter_marker'])
     xmin=min(actual)
@@ -382,7 +377,6 @@ def main():
 
 if __name__ == "__main__":
     
-    args = main()
-    run(args)
-    pass
+    in_args = main()
+    run(in_args)
 

@@ -118,7 +118,7 @@ class KMeans:
             converged = self._assignClusters()
             iterations += 1
             if iterations > self.maxIterations:
-                converted = True
+                converged = True
             if not converged:
                 self._evalCenters()
         return self.collect()
@@ -152,7 +152,6 @@ class KMeans:
 if __name__ == "__main__":
 # test KMeans demo
 
-    import matplotlib.patches as mpatches
     from pylab import plot, show, title, figure
 
     data = np.matrix(np.random.rand(32, 2))
@@ -167,7 +166,6 @@ if __name__ == "__main__":
         print closest
         kmeans.plot(k)
         show()
-    pass
     """
     import scipy.cluster.hierarchy as h
     import numpy as np
