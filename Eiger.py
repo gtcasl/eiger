@@ -155,13 +155,19 @@ def _stringToArray(string):
 
 def _runExperiment(kmeans, means, stdevs, models, rotation_matrix, 
                    experiment_DC, args, metric_names):
-    expr_metric_ids = experiment_DC.metricIndexByType('deterministic', 
-                                                      'nondeterministic')
-    expr_metric_names = [experiment_DC.metrics[mid][0] for mid in expr_metric_ids]
-    if expr_metric_names != metric_names:
+    unordered_metric_ids = experiment_DC.metricIndexByType('deterministic', 
+                                                           'nondeterministic')
+    unordered_metric_names = [experiment_DC.metrics[mid][0] for mid in unordered_metric_ids]
+    if set(unordered_metric_names) != set(metric_names):
         print ("Training datacollection and experiment datacollection "
                "do not have matching metrics. Aborting...")
         return
+    # set the correct ordering
+    expr_metric_names = [unordered_metric_names.index(name) 
+                         for name in metric_names]
+    expr_metric_ids = [unordered_metric_ids[unordered_metric_names.index(name)] 
+                       for name in metric_names]
+        
     for idx,metric in enumerate(experiment_DC.metrics):
         if(metric[0] == args['performance_metric']):
             performance_metric_id = idx
