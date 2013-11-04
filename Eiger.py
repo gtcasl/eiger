@@ -17,7 +17,8 @@ import tempfile
 import shutil
 import os
 
-from eiger import database, ClusterAnalysis, PCA, LinearRegression
+from sklearn.cluster import KMeans
+from eiger import database, PCA, LinearRegression
 
 def run(args):
     """
@@ -59,8 +60,12 @@ def run(args):
         PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
                              title="Metrics Per PC")
     #kmeans
-    kmeans = ClusterAnalysis.KMeans(rotated_training_profile, k=args['clusters'])
-    clusters = kmeans.kmeans()
+    n_clusters = args['clusters']
+    kmeans = KMeans(n_clusters)
+    means = np.mean(rotated_training_profile, axis=0)
+    stdevs = np.std(rotated_training_profile - means, axis=0, ddof=1)
+    stdevs[stdevs==0.0] = 1.0
+    clusters = kmeans.fit_predict((rotated_training_profile - means)/stdevs)
 
     # reserve a vector for each model created per cluster
     models = [0] * len(clusters)
@@ -69,17 +74,17 @@ def run(args):
     with tempfile.NamedTemporaryFile(delete=False) as modelfile:
         modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
         modelfile.write("[%s](%s)\n" % 
-                (len(kmeans.means), ','.join([str(mean) for mean in kmeans.means.tolist()])))
+                (len(means), ','.join([str(mean) for mean in means.tolist()])))
         modelfile.write("[%s](%s)\n" % 
-                (len(kmeans.stdevs), ','.join([str(stdev) for stdev in kmeans.stdevs.tolist()])))
+                (len(stdevs), ','.join([str(stdev) for stdev in stdevs.tolist()])))
         modelfile.write("[%s,%s]" % rotation_matrix.shape)
         modelfile.write("(%s)\n" % 
                         ','.join(["(%s)" % 
                             ','.join([str(elem) for elem in row]) 
                             for row in rotation_matrix.tolist()]))
-        for i,cluster in enumerate(clusters):
-            cluster_profile = rotated_training_profile[cluster,:]
-            cluster_performance = training_performance[cluster,:]
+        for i in range(n_clusters):
+            cluster_profile = rotated_training_profile[clusters==i,:]
+            cluster_performance = training_performance[clusters==i,:]
             regression = LinearRegression.LinearRegression(cluster_profile,
                                                            cluster_performance)
             pool = LinearRegression.powerLadderPool(cluster_profile.shape)
@@ -90,7 +95,7 @@ def run(args):
             modelfile.write('Model %s\n' % i)
             modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
                                             ','.join([str(center) for center in
-                                                kmeans.centers[i].tolist()])))
+                                                kmeans.cluster_centers_[i].tolist()])))
             modelfile.write(repr(models[i]))
             modelfile.write('\n') # need a trailing newline
             print "Model: " + str(models[i])
@@ -135,17 +140,16 @@ def _runExperiment(kmeans, models, rotation_matrix,
     performance = experiment_DC.profile[:,performance_metric_id]
     profile = experiment_DC.profile[:,expr_metric_ids]
     rotated_profile = np.dot(profile, rotation_matrix)
+    means = np.mean(rotated_profile, axis=0)
+    stdevs = np.std(rotated_profile - means, axis=0, ddof=1)
+    stdevs[stdevs==0.0] = 1.0
     
-    cluster_membership = kmeans.closestCluster(rotated_profile)
-    clusters = [[i for i,cluster in enumerate(cluster_membership) 
-                 if cluster == cluster_id] for cluster_id in range(kmeans.k)]
+    clusters = kmeans.predict((rotated_profile - means)/stdevs)
 
     prediction = np.empty_like(performance)
-    for i,cluster in enumerate(clusters):
-        if len(cluster) == 0:
-            continue
-        prediction[cluster,:] = abs(models[i].poll(rotated_profile[cluster,:]))
-   
+    for i in range(len(kmeans.cluster_centers_)):
+        prediction[clusters==i,:] = abs(models[i].poll(rotated_profile[clusters==i,:]))
+
     if(args['plot_performance_line']):
         _figureline(performance, prediction)
     if(args['plot_performance_scatter']):
