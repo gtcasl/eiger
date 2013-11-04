@@ -11,7 +11,6 @@ import numpy as np
 import random
 import copy
 import math
-import MySQLdb
 
 class Function:
     """ 
@@ -35,11 +34,9 @@ class Model:
     """
 
     #
-    def __init__(self, functions, weights, modelID=None, db=None):
+    def __init__(self, functions, weights=None):
         self.functions = functions
         self.weights = weights
-        if modelID is not None:
-            self.fromDatabase(modelID, db)
 
     def evaluate(self, T):
         """
@@ -57,38 +54,6 @@ class Model:
         """
         U = self.evaluate(T)
         return math.fabs(np.dot(U, self.weights))
-
-    def commit(self, db, datacollectionID, trainingComponents, machineComponents):
-        """
-        Commits this model to the database.
-        """
-        cursor = db.cursor()
-        cursor.execute("""INSERT IGNORE INTO eiger_model(dataCollectionID, trainingPCs, machinePCs, regression) VALUES("%s","%s","%s","%s")""" % (datacollectionID, trainingComponents, machineComponents, 'linear'))
-        self.modelID = db.insert_id()
-
-        for (m, b) in zip(self.functions, self.weights):
-            cursor.execute("""INSERT IGNORE INTO eiger_model_predictor(modelID, beta) VALUES("%s","%s")""" % (self.modelID, b))
-            predID = db.insert_id()
-            cursor.execute("""INSERT IGNORE INTO eiger_model_function(function) VALUES("%s")""" % (m,))
-            cursor.execute("""SELECT ID FROM eiger_model_function WHERE function LIKE '%s'""" % (m,))
-            funcID = cursor.fetchone()[0]
-            cursor.execute("""INSERT IGNORE INTO eiger_model_map(predictorID,functionID) VALUES(%s,%s)""" % (predID, funcID))
-        db.commit()
-    
-
-    def fromDatabase(self, modelID, db):
-        """
-        Retrieves a LinearRegression style model from a database.
-        """
-        self.functions = []
-        self.weights = []
-        cursor = db.cursor()
-        cursor.execute("""SELECT ID,beta FROM eiger_model_predictor WHERE modelID = %s""" % (modelID,))
-        rows = cursor.fetchall()
-        for row in rows:
-            cursor.execute("""SELECT t2.function FROM eiger_model_map AS t1 JOIN eiger_model_function AS t2 ON t1.functionID = t2.ID WHERE t1.predictorID=%s""" % (row[0],))
-            self.functions.append(cursor.fetchall()[0][0])
-            self.weights.append(float(row[1]))
 
     def __repr__(self):
         """
