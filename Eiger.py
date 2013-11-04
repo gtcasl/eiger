@@ -67,24 +67,16 @@ def run(args):
 
     print "Modeling..."
     with tempfile.NamedTemporaryFile(delete=False) as modelfile:
-        modelfile.write("%s\n" % len(metric_names))
-        for name in metric_names:
-            modelfile.write("%s\n" % name)
-        modelfile.write("[%s](" % len(kmeans.means))
-        for mean in kmeans.means:
-            modelfile.write("%s," % mean)
-        modelfile.write(")\n")
-        modelfile.write("[%s](" % len(kmeans.stdevs))
-        for stdev in kmeans.stdevs:
-            modelfile.write("%s," % stdev)
-        modelfile.write(")\n")
-        modelfile.write("[%s,%s](" % rotation_matrix.shape)
-        for row in range(rotation_matrix.shape[0]):
-            modelfile.write("(")
-            for col in range(rotation_matrix.shape[1]):
-                modelfile.write("%s," % rotation_matrix[row,col])
-            modelfile.write("),")
-        modelfile.write(")\n")
+        modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
+        modelfile.write("[%s](%s)\n" % 
+                (len(kmeans.means), ','.join([str(mean) for mean in kmeans.means.tolist()])))
+        modelfile.write("[%s](%s)\n" % 
+                (len(kmeans.stdevs), ','.join([str(stdev) for stdev in kmeans.stdevs.tolist()])))
+        modelfile.write("[%s,%s]" % rotation_matrix.shape)
+        modelfile.write("(%s)\n" % 
+                        ','.join(["(%s)" % 
+                            ','.join([str(elem) for elem in row]) 
+                            for row in rotation_matrix.tolist()]))
         for i,cluster in enumerate(clusters):
             cluster_profile = rotated_training_profile[cluster,:]
             cluster_performance = training_performance[cluster,:]
@@ -96,11 +88,11 @@ def run(args):
             
             # dump model to file
             modelfile.write('Model %s\n' % i)
-            modelfile.write("[%s](" % rotation_matrix.shape[1])
-            for dim in range(kmeans.centers.shape[1]):
-                modelfile.write("%s," % kmeans.centers[0,i])
-            modelfile.write(')\n')
+            modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
+                                            ','.join([str(center) for center in
+                                                kmeans.centers[i].tolist()])))
             modelfile.write(repr(models[i]))
+            modelfile.write('\n') # need a trailing newline
             print "Model: " + str(models[i])
 
             print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
