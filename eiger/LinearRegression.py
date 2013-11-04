@@ -11,6 +11,7 @@ import numpy as np
 import random
 import copy
 import math
+from sklearn.cross_validation import KFold
 
 class Function:
     """ 
@@ -85,7 +86,7 @@ class LinearRegression:
         assert(self.M == Y.shape[0])
     
 #
-    def select(self, pool, threshold=None):
+    def select(self, pool, threshold=None, folds=4):
         """
         Selects a model based on a pool of models for each metric. Pool is an N-tuple, where each
         element p_i is a tuple of at least one element.
@@ -97,12 +98,23 @@ class LinearRegression:
         if threshold == None:
             threshold = 0
         
-        # lookup: n_trials x n_functions
-        lookup = np.matrix([[f(x.flat) for f in pool] for x in self.X])
-        model, rsquared = self.search_regression(threshold,lookup,pool)
+        kfold = KFold(self.M, n_folds=folds, shuffle=True)
+        rsquared = float('-inf')
+        i = 0
+        for train_index, test_index in kfold:
+            print "Training fold %s" % i
+            i = i + 1
+            candidate, candidate_rsquared = self.search_regression(threshold,
+                                                                   train_index,
+                                                                   test_index,
+                                                                   pool)
+            print "Candidate R^2: %s" % candidate_rsquared
+            if(candidate_rsquared > rsquared):
+                model = candidate
+                rsquared = candidate_rsquared
         return (model, rsquared)
 
-    def search_regression(self, threshold, lookup, pool):
+    def search_regression(self, threshold, train_index, test_index, pool):
         """
         Performs ordinary least-squares linear regression using the data set X and the
         indicated models.
@@ -111,6 +123,10 @@ class LinearRegression:
         """
 
         original_pool = copy.copy(pool)
+        train_lookup = np.matrix([[f(x.flat) for f in pool] 
+                                  for x in self.X[train_index]])
+        test_lookup  = np.matrix([[f(x.flat) for f in pool] 
+                                  for x in self.X[test_index]])
 
         M = []
         Beta = []
@@ -122,8 +138,13 @@ class LinearRegression:
             max_adj = float('-inf')
             for func in pool:
                 candidate = Model(M+[func,])
-                (m,rsquared) = self._evaluateModel(candidate,lookup,original_pool)
-                n = len(self.X)
+                (m,rsquared) = self._evaluateModel(candidate,
+                                                   train_index,
+                                                   train_lookup,
+                                                   test_index,
+                                                   test_lookup,
+                                                   original_pool)
+                n = len(test_index)
                 k = len(candidate.functions)
                 rsquared_adjusted = 1 - (1-rsquared) * (n - 1) / (n - k - 1)
                 if(rsquared_adjusted > max_adj):
@@ -143,25 +164,26 @@ class LinearRegression:
 
         return (Model(M, Beta), model_r2)
     
-    def _evaluateModel(self, model, lookup, pool):
+    def _evaluateModel(self, model, train_index, train_lookup, test_index, 
+                       test_lookup, pool):
         """
         Evaluates the given model.
         """
-#       U = lookup[:,[pool.index([i]) for i in model.functions]]
-        U = np.take(lookup, [pool.index(i) for i in model.functions], axis=1, mode='clip')
-        (b, residues, rank, s) = np.linalg.lstsq(U,self.Y)
-        yhat = np.dot(U, b)
-        ybar = np.average(self.Y)
+        # lookup: n_trials x n_functions
+        train_data = np.take(train_lookup, 
+                             [pool.index(i) for i in model.functions], 
+                             axis=1, mode='clip')
+        test_data  = np.take(test_lookup, 
+                             [pool.index(i) for i in model.functions], 
+                             axis=1, mode='clip')
+        train_res = self.Y[train_index,:]
+        test_res = self.Y[test_index,:]
+        (b, residues, rank, s) = np.linalg.lstsq(train_data, train_res)
+        yhat = np.dot(test_data, b)
+        ybar = np.average(test_res)
 
-        """ 
-        we already collect sum squared error from least squares, but if the rank is
-        wrong or whatever, we'll just recalculate it
-        """
-        try:
-            SSerr = residues[0,0]
-        except IndexError:
-            SSerr = np.sum(np.square(np.subtract(self.Y,yhat)))
-        SStot = np.sum(np.square(np.subtract(self.Y,ybar)))
+        SSerr = np.sum(np.square(np.subtract(test_res,yhat)))
+        SStot = np.sum(np.square(np.subtract(test_res,ybar)))
 
         rsquared = 1 - SSerr/SStot
 

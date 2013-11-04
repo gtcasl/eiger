@@ -91,7 +91,8 @@ def run(args):
                                                                cluster_performance)
                 pool = LinearRegression.powerLadderPool(cluster_profile.shape)
                 (models[i], r_squared) = regression.select(pool, 
-                                                        threshold=args['threshold'])
+                                                        threshold=args['threshold'],
+                                                        folds=args['nfolds'])
                 
                 # dump model to file
                 modelfile.write('Model %s\n' % i)
@@ -371,6 +372,10 @@ def main():
     parser.add_argument('--threshold',
                         type=float,
                         help='Cutoff threshold of increase in adjusted R-squared value when adding new predictors to the model')
+    parser.add_argument('--nfolds',
+                        type=int,
+                        default=4,
+                        help='Number of folds to use in k-fold cross validation.')
     
     
     return vars(parser.parse_args())
