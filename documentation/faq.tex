@@ -21,13 +21,14 @@ performing analyses, and visualizing results.
 This command will generate a model and do nothing else:
 
 	\begin{quote}
-	\texttt{Eiger.py -t <Training DataCollection ID>}
+	\texttt{Eiger.py -t <Training DataCollection Name> --performance-metric <Metric Name>}
 	\end{quote}
 
 You can then specify a DataCollection to test the model against:
 
 	\begin{quote}
-	\texttt{Eiger.py -t <Training DataCollection ID> -e <Experiment DataCollection ID>}
+	\texttt{Eiger.py -t <Training DataCollection Name> --performance-metric <Metric Name> 
+                     -e <Experiment DataCollection Name>}
 	\end{quote}
 
 A full listing of flags and their functions can be found by running the
@@ -70,6 +71,6 @@ The following flag can be used to output a generated model for
 consumption by SST/macro:
 
 	\begin{quote}
-	\texttt{Eiger.py <other flags> --output MODEL\_FILENAME}
+	\texttt{Eiger.py <other flags> -o}
 	\end{quote}
 

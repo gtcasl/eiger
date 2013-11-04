@@ -32,9 +32,9 @@ To begin, the execution environment is set up. The Eiger database is connected t
 
 It is important to note that each object needs to be send to the database, performed by the \texttt{commit()} member functions. This flushes the data to the database so that it can be used for modeling.
 
-Compiling the application requires indicating the location of the C++ API include directory, typically \texttt{/usr/local/include/eiger}, the API library, as well as the C++ MySQL library, e.g.
+Compiling the application requires indicating the location of the C++ API include directory, typically \texttt{/usr/local/include/eiger}, and the API library, e.g.
 	\begin{quote}
-	\texttt{g++ -I/usr/local/include/eiger matmul.cc -o matmul -lrt -leigerInterface -lmysqlpp}
+	\texttt{g++ -I/usr/local/include/eiger matmul.cc -o matmul -leigerInterface}
 	\end{quote}
 
 Run the application like this:
@@ -51,35 +51,50 @@ All the modeling functionality is built into the \texttt{Eiger.py} script. All t
 
 Since the data for the models resides in the database, the connection flags are the most commonly used:
 	\begin{description}
-	\item[\texttt{--database-name}] Name of the database.
-	\item[\texttt{--database-user}] Username to get access to the database.
-	\item[\texttt{--database-password}] Password associated with the user.
-	\item[\texttt{--database-location}] Hostname or IP address of the machine the database is hosted on.
+	\item[\texttt{--db}] Name of the database.
+	\item[\texttt{--user}] Username to get access to the database.
+	\item[\texttt{--passwd}] Password associated with the user.
+	\item[\texttt{--host}] Hostname or IP address of the machine the database is hosted on.
 	\end{description}
-Making models requires the ID of the \texttt{DataCollection} in the Eiger database. Here's how you make a basic model:
+Making models requires the name of the \texttt{DataCollection} and the metric to predict. Here's how you make a basic model:
 	\begin{quote}
-	\texttt{Eiger.py --database-name DBNAME --database-user USER --database-password PASSWD --database-location DBLOCATION -t ID}
+	\texttt{Eiger.py --db test --user username --passwd abc123 --host localhost 
+                     -t example --performance-metric runtime}
 	\end{quote}
-You'll notice that this does not print out anything except some progress messages. This is because we have not specified any experiments to run or messages to be printed out. Most analytics require an experiment to be run, as they demonstrate how well the model performs. There are two ways to explore the quality of the model produced: how closely it fits to the training data, and how well it extrapolates to unseen data.
 
-To explore how well the model fits the training data, and to allow us to play around with some settings, set the experiment \texttt{DataCollection} ID equal to the training ID and turn on the statistics:
+Most analytics require an experiment to be run, as they demonstrate how well the model performs. There are two ways to explore the quality of the model produced: how closely it fits to the training data, and how well it extrapolates to unseen data.
+
+To explore how well the model fits the training data, and to allow us to play around with some settings, set fit test and turn on the statistics:
 	\begin{quote}
-	\texttt{Eiger.py DBFLAGS -t ID -e ID --show-prediction-statistics}
+	\texttt{Eiger.py --db test --user username --passwd abc123 --host localhost 
+                     -t example --performance-metric runtime
+                     --test-fit --show-prediction-statistics}
 	\end{quote}
 This will print out some statistics about how well the trained model fits to the training data. The golden version of this model is in the \texttt{gold.model} file.
 
 Let's turn on some analysis figures to explore the quality of the program. Most plotting functions pertain to the principal component analysis; while PCA is performed in this example, there is only one training variable (the size of the model), which will result in only one principal component identical to this variable. Let's turn on a scatter plot of predicted versus actual performance:
 	\begin{quote}
-	\texttt{Eiger.py DBFLAGS -t ID -e ID --plot-performance-scatter}
+	\texttt{Eiger.py --db test --user username --passwd abc123 --host localhost 
+                     -t example --performance-metric runtime
+                     --test-fit --show-prediction-statistics
+                     --plot-performance-scatter}
 	\end{quote}
 
 One important setting that affects the quality of the model is the {\em threshold}. This determines how much additional benefit an added term to the model must have to be retained. Compare difference in root mean squared error when the threshold goes from 0.01:
 	\begin{quote}
-	\texttt{Eiger.py DBFLAGS -t ID -e ID --threshold 0.01}
+	\texttt{Eiger.py --db test --user username --passwd abc123 --host localhost 
+                     -t example --performance-metric runtime
+                     --test-fit --show-prediction-statistics
+                     --plot-performance-scatter
+                     --threshold 0.01}
 	\end{quote}
 up to 0.1:
 	\begin{quote}
-	\texttt{Eiger.py DBFLAGS -t ID -e ID --threshold 0.1}
+	\texttt{Eiger.py --db test --user username --passwd abc123 --host localhost 
+                     -t example --performance-metric runtime
+                     --test-fit --show-prediction-statistics
+                     --plot-performance-scatter
+                     --threshold 0.1}
 	\end{quote}
 The golden model files for these models are \texttt{gold-threshold-0.01.model} and \texttt{gold-threshold-0.1.model}, respectively. For more information on threshold, see the Eiger WPEA12 paper, included in the \texttt{documentation} directory.
 
@@ -91,7 +106,7 @@ There are many more flags for specifying subsets of \texttt{DataCollections} to 
 \subsection{Saving Models}
 Models are only saved by using the {\em output} flag to Eiger, like so:
 	\begin{quote}
-	\texttt{Eiger.py OTHER\_FLAGS -o OUTPUT\_FILE}
+	\texttt{Eiger.py OTHER\_FLAGS -o}
 	\end{quote}
-Here the model, which is constructed under the constraints in the other flags (not shown), is output into the file named \texttt{OUTPUT\_FILE}. This file is a human-readable text file. In general, it contains the principal component analysis rotation matrix, the model functions, their weights, and the names of the metrics that this model requires. For more details on the file format of the models, see Section \ref{sec:modelfile}.
+Here the model, which is constructed under the constraints in the other flags (not shown), is output into a file with a name of the format \texttt{DATACOLLECTION.model}. This file is a human-readable text file. In general, it contains the principal component analysis rotation matrix, the model functions, their weights, and the names of the metrics that this model requires. For more details on the file format of the models, see Section \ref{sec:modelfile}.
 
