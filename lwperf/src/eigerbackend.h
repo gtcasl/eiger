@@ -1,7 +1,7 @@
 #ifndef eigerbackend_h
 #define eigerbackend_h
 
-#include <map>
+#include <vector>
 
 #ifdef _USE_FAKEEIGER 
 #include "mpifakeeiger.h"
@@ -21,8 +21,8 @@ class EigerBackend{
 
 
   public:
-    void writeheaders(const std::map<std::string, enum datakind>& headers) {}
-    void nextrow(const std::map<std::string, enum datakind>& headers,
+    void writeheaders(const std::vector<std::pair<std::string, enum datakind> >& headers) {}
+    void nextrow(const std::vector<std::pair<std::string, enum datakind> >& headers,
                  const std::vector<double>& row);
 
     void addCol(const std::string& label, const enum datakind k);

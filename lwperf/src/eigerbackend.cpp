@@ -35,7 +35,7 @@ void EigerBackend::addCol(const std::string& label, const enum datakind kind){
   erow_.push_back(metric);
 }
 
-void EigerBackend::nextrow(const std::map<std::string, enum datakind>& headers,
+void EigerBackend::nextrow(const std::vector<std::pair<std::string, enum datakind> >& headers,
                            const std::vector<double>& row){
   // declare a trial, exec, etc and do all commits, then 
   // do text since text handles row.clear().
@@ -43,10 +43,10 @@ void EigerBackend::nextrow(const std::map<std::string, enum datakind>& headers,
   std::ostringstream ddbuf; 
   dsbuf << sitename_;
   ddbuf << sitename_;
-  std::map<std::string,enum datakind>::size_type len = headers.size();
+  std::vector<std::pair<std::string, enum datakind> >::size_type len = headers.size();
   assert(row.size() == len && 0 != "eigerbackend::nextrow called with incomplete data");
   int i = 0;
-  for(std::map<std::string,enum datakind>::const_iterator it = headers.begin();
+  for(std::vector<std::pair<std::string, enum datakind> >::const_iterator it = headers.begin();
       it != headers.end(); ++it, ++i){
     dsbuf << "_" << row.at(i);
     ddbuf << " " << it->first <<  "=" << row.at(i);
@@ -66,7 +66,7 @@ void EigerBackend::nextrow(const std::map<std::string, enum datakind>& headers,
   exec.commit();
   eiger::ExecutionID eid = exec.getID();
   int j = 0;
-  for(std::map<std::string,enum datakind>::const_iterator it = headers.begin();
+  for(std::vector<std::pair<std::string, enum datakind> >::const_iterator it = headers.begin();
       it != headers.end(); ++it, ++j){
     eiger::MetricID mid = (erow_.at(j)).getID();
     switch(it->second){
