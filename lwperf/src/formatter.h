@@ -21,7 +21,7 @@ class formatter
 {
 protected:
   Backend backend_;
-  std::map<std::string, enum datakind> headers;
+  std::vector<std::pair<std::string, enum datakind> > headers;
 	std::vector<double> row;
 	double t0;
 
@@ -48,10 +48,17 @@ public:
 	// uniqueness is not enforced. strings given will be double-quoted in output.
 	void addCol(std::string label, enum datakind k)
   {
-    if(headers.find(label) != headers.end()){
+    bool found = false;
+    typedef std::vector<std::pair<std::string, enum datakind> > pair_vec;
+    for(pair_vec::const_iterator it = headers.begin(); it != headers.end(); ++it){
+      if(it->first == label){
+        found = true;
+      }
+    }
+    if(found){
       throw "formatter::addCol duplicate column label ";
     }
-    headers[label] = k;
+    headers.push_back(std::make_pair(label, k));
     backend_.addCol(label, k);
   }
 
