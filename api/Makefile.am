@@ -1,8 +1,7 @@
-bin_PROGRAMS = eiger-loader eiger-mpi-loader
-eiger_loader_SOURCES = feloader.cpp
-eiger_mpi_loader_SOURCES = mfeloader.cpp
+bin_PROGRAMS = eiger-loader 
+eiger_loader_SOURCES = eiger_loader.cpp
+eiger_loader_CPPFLAGS = $(MYSQLPP_CFLAGS) $(MYSQL_CFLAGS)
 eiger_loader_LDADD = libeigerInterface.la $(MYSQLPP_LIBS)
-eiger_mpi_loader_LDADD = libeigerInterface.la $(MYSQLPP_LIBS)
 
 lib_LTLIBRARIES = libeigerInterface.la libfakeeigerInterface.la libmpifakeeigerInterface.la
 pkginclude_HEADERS = eiger.h fakeeiger.h mpifakeeiger.h fakekeywords.h
