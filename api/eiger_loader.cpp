@@ -22,10 +22,9 @@
 
 #include "fakekeywords.h" 
 
-sql_create_3(datacollections, 1, 2, 
+sql_create_2(datacollections, 1, 2, 
              mysqlpp::sql_varchar, name,
-             mysqlpp::sql_text, description,
-             mysqlpp::sql_datetime, created);
+             mysqlpp::sql_text, description);
 sql_create_5(trials, 4, 0, 
              mysqlpp::sql_int, dataCollectionID,
              mysqlpp::sql_int, machineID,
@@ -49,12 +48,11 @@ sql_create_3(machine_metrics, 2, 3,
 sql_create_2(applications, 1, 2,
              mysqlpp::sql_varchar, name,
              mysqlpp::sql_text, description);
-sql_create_5(datasets, 2, 4,
+sql_create_4(datasets, 2, 4,
              mysqlpp::sql_int, applicationID,
              mysqlpp::sql_varchar, name,
              mysqlpp::sql_text, description,
-             mysqlpp::sql_text, url,
-             mysqlpp::sql_datetime, created);
+             mysqlpp::sql_text, url);
 sql_create_3(metrics, 2, 3,
              mysqlpp::sql_enum, type,
              mysqlpp::sql_varchar, name,
@@ -318,28 +316,35 @@ class FakeEigerLoader {
   // IDs with db IDs.
   void finalize(){
     mysqlpp::Query query = conn.query();
-#define INSERTANDRESET(n, l2d) \
-    resetIDs(n##_ids, local2db##l2d, insertAll(n##_rows.begin(), n##_rows.end(), query));
-#define INSERT(n) \
-    insertAll(n##_rows.begin(), n##_rows.end(), query);
 
-    INSERTANDRESET(datacollections, DataCollection)
-    INSERTANDRESET(machines, Machine)
-    INSERTANDRESET(applications, Application)
-    INSERTANDRESET(metrics, Metric)
+    resetIDs(datacollections_ids, local2dbDataCollection,
+             insertAndIDByName(datacollections_rows.begin(), 
+                               datacollections_rows.end(), query));
+    resetIDs(machines_ids, local2dbMachine,
+             insertAndIDByName(machines_rows.begin(), 
+                               machines_rows.end(), query));
+    resetIDs(applications_ids, local2dbApplication,
+             insertAndIDByName(applications_rows.begin(), 
+                               applications_rows.end(), query));
+    resetIDs(metrics_ids, local2dbMetric,
+             insertAndIDByName(metrics_rows.begin(), 
+                               metrics_rows.end(), query));
     
     for(std::vector<datasets>::iterator it = datasets_rows.begin(); 
         it != datasets_rows.end(); ++it){
       it->applicationID = local2dbApplication[it->applicationID];
     }
-    INSERTANDRESET(datasets, Dataset)
+    resetIDs(datasets_ids, local2dbDataset,
+             insertAndIDByInsertID(datasets_rows.begin(), 
+                                   datasets_rows.end(), query));
 
     for(std::vector<machine_metrics>::iterator it = machine_metrics_rows.begin(); 
         it != machine_metrics_rows.end(); ++it){
       it->machineID = local2dbMachine[it->machineID];
       it->metricID = local2dbMetric[it->metricID];
     }
-    INSERT(machine_metrics)
+    insertAll(machine_metrics_rows.begin(), machine_metrics_rows.end(), query, 
+              false);
 
     for(std::vector<trials>::iterator it = trials_rows.begin(); 
         it != trials_rows.end(); ++it){
@@ -348,47 +353,52 @@ class FakeEigerLoader {
       it->applicationID = local2dbApplication[it->applicationID];
       it->datasetID = local2dbDataset[it->datasetID];
     }
-    INSERTANDRESET(trials, Trial)
+    resetIDs(trials_ids, local2dbTrial,
+             insertAndIDByInsertID(trials_rows.begin(), 
+                                   trials_rows.end(), query));
     
     for(std::vector<executions>::iterator it = executions_rows.begin(); 
         it != executions_rows.end(); ++it){
       it->machineID = local2dbMachine[it->machineID];
       it->trialID = local2dbTrial[it->trialID];
     }
-    INSERTANDRESET(executions, Execution)
+    resetIDs(executions_ids, local2dbExecution,
+             insertAndIDByInsertID(executions_rows.begin(), 
+                                   executions_rows.end(), query));
 
     for(std::vector<nondeterministic_metrics>::iterator it = nondeterministic_metrics_rows.begin(); 
         it != nondeterministic_metrics_rows.end(); ++it){
       it->executionID = local2dbExecution[it->executionID];
       it->metricID = local2dbMetric[it->metricID];
     }
-    INSERT(nondeterministic_metrics)
+    insertAll(nondeterministic_metrics_rows.begin(), 
+              nondeterministic_metrics_rows.end(), query, false);
 
     for(std::vector<deterministic_metrics>::iterator it = deterministic_metrics_rows.begin(); 
         it != deterministic_metrics_rows.end(); ++it){
       it->datasetID = local2dbDataset[it->datasetID];
       it->metricID = local2dbMetric[it->metricID];
     }
-    INSERT(deterministic_metrics)
-
+    insertAll(deterministic_metrics_rows.begin(), 
+              deterministic_metrics_rows.end(), query, false);
   }
 
-  void resetIDs(std::vector<int>& ids, std::map<int,int>& l2d, int first_id){
-    int i = 0;
-    for(std::vector<int>::iterator it = ids.begin();
-        it != ids.end(); ++it, ++i){
-      l2d[*it] = first_id + i;
+  void resetIDs(const std::vector<int>& localids, std::map<int,int>& l2d, 
+                const std::vector<int>& globalids){
+    for(size_t i = 0; i < localids.size(); ++i){
+      l2d[localids[i]] = globalids[i];
     }
   }
 
   template<typename T>
-  int insertAll(T first, T last, mysqlpp::Query& q){
+  int insertAll(T first, T last, mysqlpp::Query& q, bool ignore){
     bool empty = true;
-    if(first == last){std::cerr << "empty set" << std::endl; return 0;}
+    std::string ignore_cmd = ignore ? " IGNORE " : " ";
+    if(first == last) return 0;
     for(T it = first; it != last; ++it){
       if(empty){
-        q << "INSERT INTO `" << it->table() << "` (" << it->field_list()
-          << ") VALUES (";
+        q << "INSERT" << ignore_cmd << "INTO `" << it->table() << "` (" 
+          << it->field_list() << ") VALUES (";
       }else{
         q << ",(";
       }
@@ -397,6 +407,54 @@ class FakeEigerLoader {
     }
     q.execute();
     return q.insert_id();
+  }
+
+  template<typename T>
+  std::vector<int> insertAndIDByInsertID(T first, T last, mysqlpp::Query& q){
+    bool empty = true;
+    int first_id = insertAll(first, last, q, false);
+    std::vector<int> retval;
+    if(first == last) return retval;
+    int i = 0;
+    for(T it = first; it != last; ++it, ++i){
+      retval.push_back(first_id + i);
+    }
+    return retval;
+  }
+
+  template<typename T>
+  std::vector<int> insertAndIDByName(T first, T last, mysqlpp::Query& q){
+    bool empty = true;
+    insertAll(first, last, q, true);
+    if(first == last) return std::vector<int>();
+    for(T it = first; it != last; ++it){
+      if(empty){
+        q << "SELECT ID FROM `" << it->table() << "` WHERE (" << it->field_list()
+          << ") IN ((";
+      }else{
+        q << ",(";
+      }
+      q << it->value_list() << ")";
+      empty = false;
+    }
+    empty = true;
+    for(T it = first; it != last; ++it){
+      if(empty){
+        q << ") ORDER BY FIELD(name, ";
+      }else{
+        q << ",";
+      }
+      q << "'" << it->name << "'";
+      empty = false;
+    }
+    q << ")";
+    mysqlpp::StoreQueryResult res = q.store();
+    std::vector<int> retval;
+    for(mysqlpp::StoreQueryResult::const_iterator it = res.begin();
+        it != res.end(); ++it){
+      retval.push_back((*it)[0]);
+    }
+    return retval;
   }
 
   // set up a hash map to convert switching over strings into switching on enum.
