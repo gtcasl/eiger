@@ -1,7 +1,11 @@
 #include <sstream>
 #include <map>
 #include <cassert>
+#ifdef _USE_FAKEEIGER 
+#include <mpifakeeiger.h>
+#else
 #include <eiger.h>
+#endif
 
 #include "datakind.h"
 #include "eigerbackend.h"
