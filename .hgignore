@@ -16,3 +16,6 @@ api/autom4te.cache/*
 api/config/*
 api/configure
 api/m4/l*
+documentation/*.aux
+documentation/*.log
+documentation/*.toc
