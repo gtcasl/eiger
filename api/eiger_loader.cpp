@@ -26,19 +26,14 @@
 sql_create_2(datacollections, 1, 2, 
              mysqlpp::sql_varchar, name,
              mysqlpp::sql_text, description);
-sql_create_5(trials, 4, 0, 
+sql_create_4(trials, 4, 0, 
              mysqlpp::sql_int, dataCollectionID,
              mysqlpp::sql_int, machineID,
              mysqlpp::sql_int, applicationID,
-             mysqlpp::sql_int, datasetID,
-             mysqlpp::sql_int, propertiesID);
+             mysqlpp::sql_int, datasetID);
 sql_create_2(executions, 2, 0, 
              mysqlpp::sql_int, machineID,
              mysqlpp::sql_int, trialID);
-sql_create_3(properties, 3, 0, 
-             mysqlpp::sql_int, trialID,
-             mysqlpp::sql_text, propertyName,
-             mysqlpp::sql_int, property);
 sql_create_2(machines, 1, 2, 
              mysqlpp::sql_varchar, name,
              mysqlpp::sql_text, description);
@@ -109,8 +104,6 @@ class FakeEigerLoader {
 	enum dispatch {
 		Metric,
 		Metric_commit,
-		Properties,
-		Properties_commit,
 		DataCollection,
 		DataCollection_commit,
 		Application,
@@ -154,7 +147,6 @@ class FakeEigerLoader {
   MAKEROWVEC(datacollections)
   MAKEROWVEC(trials)
   MAKEROWVEC(executions)
-  MAKEROWVEC(properties)
   MAKEROWVEC(machines)
   MAKEROWVEC(machine_metrics)
   MAKEROWVEC(applications)
@@ -226,7 +218,6 @@ class FakeEigerLoader {
 			}
 			break;
 		/* this batch don't really need to do anything yet. ctors. */
-		case Properties:
 		case DataCollection:
 		case Application:
 		case Dataset:
@@ -265,7 +256,7 @@ class FakeEigerLoader {
 			break;
 		case Trial_commit:
 			{
-				trials_ids.push_back(toInt(v[6])); // id as logged
+				trials_ids.push_back(toInt(v[5])); // id as logged
 				int dci  = toInt(v[1]);
 				int mi = toInt(v[2]); 
 				int ai = toInt(v[3]);
@@ -478,8 +469,6 @@ class FakeEigerLoader {
 
   // set up a hash map to convert switching over strings into switching on enum.
   void initmaps() {
-    domap[PROPERTIES_COMMIT]=Properties_commit;
-    domap[PROPERTIES]=Properties;
     domap[DATACOLLECTION_COMMIT] =DataCollection_commit;
     domap[DATACOLLECTION] =DataCollection;
     domap[APPLICATION_COMMIT] =Application_commit;

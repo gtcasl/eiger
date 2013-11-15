@@ -237,20 +237,18 @@ namespace eiger{
 	}
 
 	Trial::Trial(DataCollectionID dataCollectionID, MachineID machineID,
-			ApplicationID applicationID, DatasetID datasetID,
-			PropertiesID propertiesID) : 
+			ApplicationID applicationID, DatasetID datasetID) :
 		dataCollectionID(dataCollectionID), machineID(machineID),
-		applicationID(applicationID), datasetID(datasetID), propertiesID(propertiesID) { ecs = ecs_pre; }
+		applicationID(applicationID), datasetID(datasetID) { ecs = ecs_pre; }
 
 	void Trial::commit() {
 		try{
 			mysqlpp::Query q = conn->query();
-			q << "INSERT INTO trials (dataCollectionID, machineID, applicationID, datasetID, propertiesID) VALUES(" << 
+			q << "INSERT INTO trials (dataCollectionID, machineID, applicationID, datasetID) VALUES(" << 
 				dataCollectionID << "," <<
 				machineID << "," <<
 				applicationID << "," <<
-				datasetID << "," <<
-				propertiesID << ");";
+				datasetID << "," << ");";
 
 			mysqlpp::SimpleResult res = q.execute();
 
@@ -414,45 +412,6 @@ namespace eiger{
 	   }
 	 */
 
-	Properties::Properties(int ID) {
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT trialID, propertyName, property FROM properties WHERE ID=" << ID << ";";
-			mysqlpp::StoreQueryResult res = q.store();
-
-			this->ID = ID;
-			this->trialID = (int) res[0]["trialID"];
-			this->propertyID = (int) res[0]["property"];
-			this->name = (std::string) res[0]["propertyName"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Properties() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
-	}
-
-	Properties::Properties(std::string name, TrialID trialID, PropertiesID propertyID) : name(name), trialID(trialID), propertyID(propertyID) { ecs = ecs_pre; }
-
-	void Properties::commit() {
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT IGNORE INTO properties (trialID, propertyName, property) VALUES(" << trialID << "." << mysqlpp::quote << name << "," << propertyID << ");";
-			mysqlpp::SimpleResult res = q.execute();
-
-			q << "SELECT ID,created FROM properties WHERE propertyName=" << mysqlpp::quote << name <<";";
-			mysqlpp::StoreQueryResult myrow = q.store();
-			this->ID = (int) myrow[0]["ID"];
-			this->ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::::commit() Error: " << er.what() << std::endl;
-			this->ecs = ecs_fail;
-		}
-
-	}
-
 	std::string Metric::toString() {
 
 		std::string type;
@@ -518,7 +477,7 @@ namespace eiger{
 	std::string Trial::toString() {
 
 		std::stringstream ss;
-		ss << "Trial (ID: " << this->ID << ", datacollectionID: " << this->dataCollectionID << ", machineID : " << this->machineID << ", applicationID: " << this->applicationID << ", datasetID: " << this->datasetID << ", propertiesID: " << this->propertiesID << ")";
+		ss << "Trial (ID: " << this->ID << ", datacollectionID: " << this->dataCollectionID << ", machineID : " << this->machineID << ", applicationID: " << this->applicationID << ", datasetID: " << this->datasetID << ")";
 
 		return ss.str();
 	}
@@ -551,14 +510,6 @@ namespace eiger{
 
 		std::stringstream ss;
 		ss << "DataCollection (ID: " << this->ID << ", name: " << this->name << ", description: " << this->description << ", created: " << this->created << ")";
-
-		return ss.str();
-	}
-
-	std::string Properties::toString() {
-
-		std::stringstream ss;
-		ss << "Property (name: " << this->name << ", trialID: " << this->trialID << ", propertyID: " << this->propertyID << ")";
 
 		return ss.str();
 	}

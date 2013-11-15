@@ -12,8 +12,6 @@ static int fakekeys = 0; // expect whinage about unused.
 // compile -DFAKE_KEYS_FULL to get these in output files.
 // some of the macro names are prefixed with FE to avoid enum element conflicts.
 
-#define PROPERTIES_COMMIT "Properties_commit"
-#define PROPERTIES "Properties"
 #define DATACOLLECTION_COMMIT "DataCollection_commit"
 #define DATACOLLECTION "DataCollection"
 #define APPLICATION_COMMIT "Application_commit"
@@ -40,8 +38,6 @@ static int fakekeys = 0; // expect whinage about unused.
 // shorter, faster, barely readable.
 // caps are commits, lowercase are ctor.
 // mnemonics: C-dataCollection, S-dataSet, R-hardware rate, H-hardware, V-value
-#define PROPERTIES_COMMIT "P"
-#define PROPERTIES "p"
 #define DATACOLLECTION_COMMIT "C"
 #define DATACOLLECTION "c"
 #define APPLICATION_COMMIT "A"

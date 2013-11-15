@@ -48,7 +48,6 @@ namespace eiger{
   class Machine;
   class DataCollection;
   class Application;
-  class Properties;
 
   enum metric_type_t{ RESULT,
                       DETERMINISTIC,
@@ -105,7 +104,6 @@ DERIVED_ID(MachineID);
 DERIVED_ID(DatasetID);
 DERIVED_ID(ApplicationID);
 DERIVED_ID(DataCollectionID);
-DERIVED_ID(PropertiesID);
 
   enum commit_status {
   	ecs_pre, // allocated but not committed
@@ -213,12 +211,10 @@ DERIVED_ID(PropertiesID);
       int machineID;
       int applicationID;
       int datasetID;
-      int propertiesID;
 
 			// Constructors
       Trial(DataCollectionID dataCollectionID, MachineID machineID, 
-            ApplicationID applicationID, DatasetID datasetID,
-            PropertiesID propertiesID);
+            ApplicationID applicationID, DatasetID datasetID);
 
 			// Methods
       //std::vector<DynamicMetric>* getDynamicMetrics();
@@ -304,25 +300,6 @@ DERIVED_ID(PropertiesID);
       COVARIANT_GETID(DataCollectionID);
 
   };
-
-  class Properties : public EigerIdentifiedClass {
-    public:
-			// Members
-      std::string name;
-      int trialID;
-      int propertyID; // always 0
-
-      // Constructors
-      Properties(std::string name, TrialID trialID, PropertiesID propertyID);
-      Properties(int ID);
-
-      // Methods
-      std::string toString();
-      void commit();
-      COVARIANT_GETID(PropertiesID);
-
-  };
-
 
 } // end namespace eiger
 

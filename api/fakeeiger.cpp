@@ -37,7 +37,6 @@ namespace eiger{
     std::map< std::string, int> Dataset_idmap;
     std::map< std::string, int> Application_idmap;
     std::map< std::string, int> DataCollection_idmap;
-    std::map< std::string, int> Properties_idmap;
   } *log;
 
 	error_t getLastError(){
@@ -178,10 +177,9 @@ namespace eiger{
 	}
 
 	Trial::Trial(DataCollectionID dataCollectionID, MachineID machineID,
-			ApplicationID applicationID, DatasetID datasetID,
-			PropertiesID propertiesID) : 
+			ApplicationID applicationID, DatasetID datasetID) : 
 		dataCollectionID(dataCollectionID), machineID(machineID),
-		applicationID(applicationID), datasetID(datasetID), propertiesID(propertiesID) {ecs=ecs_pre;}
+		applicationID(applicationID), datasetID(datasetID) {ecs=ecs_pre;}
 
 	void Trial::commit() {
 		if (!log) return;
@@ -191,7 +189,7 @@ namespace eiger{
                                 machineID << " ;" <<
                                 applicationID << " ;" <<
                                 datasetID << " ;" <<
-                                propertiesID << ";" << ++id_count << "\n";
+                                ++id_count << "\n";
 		std::string key = s.str();
 		log->f << key ;
     this->ID = id_count;
@@ -283,27 +281,6 @@ namespace eiger{
 		this->ecs = ecs_ok;
 	}
 
-	Properties::Properties(int ID) {}
-
-	Properties::Properties(std::string name, TrialID trialID, PropertiesID propertyID) : name(name), trialID(trialID), propertyID(propertyID) {ecs=ecs_pre;}
-
-	void Properties::commit() {
-		if (!log) return;
-    std::ostringstream s;
-    s << PROPERTIES_COMMIT<<";" <<name <<";"<<trialID <<";"<<propertyID ;
-    std::string key = s.str();
-    log->f << key;
-    int id;
-    if (log->Properties_idmap.find(key) != log->Properties_idmap.end()) {
-      id = log->Properties_idmap[key];
-    } else {
-      id = log->Properties_idmap[key] = 1+log->Properties_idmap.size();
-    }
-    log->f << ";" << id << "\n";
-		this->ID = id;
-		this->ecs = ecs_ok;
-	}
-
 	std::string Metric::toString() {
 		std::string type;
 		switch(this->type){
@@ -368,7 +345,7 @@ namespace eiger{
 	std::string Trial::toString() {
 
 		std::stringstream ss;
-		ss << "Trial (ID: " << this->ID << ", datacollectionID: " << this->dataCollectionID << ", machineID : " << this->machineID << ", applicationID: " << this->applicationID << ", datasetID: " << this->datasetID << ", propertiesID: " << this->propertiesID << ")";
+		ss << "Trial (ID: " << this->ID << ", datacollectionID: " << this->dataCollectionID << ", machineID : " << this->machineID << ", applicationID: " << this->applicationID << ", datasetID: " << this->datasetID << ")";
 
 		return ss.str();
 	}
@@ -401,14 +378,6 @@ namespace eiger{
 
 		std::stringstream ss;
 		ss << "DataCollection (ID: " << this->ID << ", name: " << this->name << ", description: " << this->description << ", created: " << this->created << ")";
-
-		return ss.str();
-	}
-
-	std::string Properties::toString() {
-
-		std::stringstream ss;
-		ss << "Property (name: " << this->name << ", trialID: " << this->trialID << ", propertyID: " << this->propertyID << ")";
 
 		return ss.str();
 	}
