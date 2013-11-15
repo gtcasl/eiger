@@ -9,17 +9,19 @@
  **********************************************************/
 
 // C++ string includes
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
+#include <vector>
 
-#if NEEDSQLREAD
-// MySQL++ includes
-#include <mysql++.h>
-#endif
+#include "fakekeywords.h" 
 
 // Eiger includes
-#include <fakeeiger.h>
+#include "eiger.h"
 
 
 ///////////////////////////////////////////////////////////
@@ -28,7 +30,15 @@ namespace eiger{
 
 	error_t err;
 
-	Log *log;
+  struct Log{
+    std::fstream f;
+    std::map< std::string, int> Metric_idmap;
+    std::map< std::string, int> Machine_idmap;
+    std::map< std::string, int> Dataset_idmap;
+    std::map< std::string, int> Application_idmap;
+    std::map< std::string, int> DataCollection_idmap;
+    std::map< std::string, int> Properties_idmap;
+  } *log;
 
 	error_t getLastError(){
 		return err;
@@ -69,54 +79,33 @@ namespace eiger{
 			std::string username,
 			std::string password) {
 
-			log = new Log();
-			log->connect(databaseLocation.c_str(), databaseName.c_str(),  username.c_str(), password.c_str());
+    log = new Log();
+    char* tmpname = strdup("fakeeiger.log.XXXXXX");
+    if(mkstemp(tmpname) == -1){
+      throw "Unable to open unique output file";
+    }
+		log->f.open(tmpname,std::fstream::out|std::fstream::trunc); 
+		log->f.precision(18);
+		log->f << FEVERSION<<";2\n";
+		log->f << FEFORMAT << ";" KWFORMAT "\n";
+		log->f << FECONNECT << ";" << databaseLocation << ";" << databaseName << ";" <<username << ";" << password << "\n";
 	}
 
 	void Disconnect(){
-		if(log != NULL)
-			delete log; log = NULL;
+		if(log != NULL) {
+      log->f.close();
+			delete log;
+			log = NULL;
+		}
 	}
 
 	//-----------------------------------------------------------------
 
-#if NEEDSQLREAD
-	Metric::Metric(int ID){
+	Metric::Metric(int ID){}
 
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT type, name, description FROM metrics WHERE ID=" << ID << ";";
-			mysqlpp::StoreQueryResult res = q.store();
-
-			this->ecs = ecs_ok;
-			this->ID = ID;
-			this->name = (std::string) res[0]["name"];
-			this->description = (std::string) res[0]["description"];
-
-			std::string type_name = (std::string) res[0]["type"];
-			if(!type_name.compare("result"))
-				this->type = RESULT;
-			else if(!type_name.compare("deterministic"))
-				this->type = DETERMINISTIC;
-			else if(!type_name.compare("nondeterministic"))
-				this->type = NONDETERMINISTIC;
-			else if(!type_name.compare("machine"))
-				this->type = MACHINE;
-			else if(!type_name.compare("other"))
-				this->type = OTHER;
-		}
-		catch(const mysqlpp::BadQuery& er) {
-			std::cerr << "eiger::Metric() Error: " << er.what() << std::endl;
-			this->ecs = ecs_fail;
-		}
-
-	}
-#endif
-
-	Metric::Metric(metric_type_t type, std::string name, std::string description) : type(type), name(name), description(description) { if (!log) return; log->Metric(type, name, description); }
+	Metric::Metric(metric_type_t type, std::string name, std::string description) : type(type), name(name), description(description) {ecs=ecs_pre;}
 
 	void Metric::commit() {
-
 		std::string type_name;
 		switch(type){
 			case RESULT:
@@ -137,38 +126,54 @@ namespace eiger{
 		}
 
 		if (!log) return;
-		this->ID = log->Metric_commit(type_name, name, description);
+    std::ostringstream s;
+		s<<METRIC_COMMIT<<";"<< type_name << ";" << name << ";" << description ;
+		std::string key = s.str();
+		log->f << key ;
+    int id;
+		if (log->Metric_idmap.find(key) != log->Metric_idmap.end()) {
+			id = log->Metric_idmap[key];
+    } else {
+			id = 1 + log->Metric_idmap.size();
+      log->Metric_idmap[key] = id;
+		}
+    log->f << ";" << id << "\n";
+		this->ID = id;
 		this->ecs = ecs_ok;
-
 	}
 
 
-	NondeterministicMetric::NondeterministicMetric(ExecutionID executionID, MetricID metricID, double value) : executionID(executionID), metricID(metricID), value(value) { if (!log) return; log->NondeterministicMetric(executionID, metricID,value); }
+	NondeterministicMetric::NondeterministicMetric(ExecutionID executionID, MetricID metricID, double value) : executionID(executionID), metricID(metricID), value(value) {}
 
 	void NondeterministicMetric::commit() {
 		if (!log) return;
-		log->NondeterministicMetric_commit(executionID, metricID,value);
+		log->f << NONDETERMINISTICMETRIC_COMMIT<<";" << executionID << " ;" << metricID << " ;" << value <<  "\n";
 	}
 
-	DeterministicMetric::DeterministicMetric(DatasetID datasetID, MetricID metricID, double value) : datasetID(datasetID), metricID(metricID), value(value) { if (!log) return; log->DeterministicMetric(datasetID, metricID, value); }
+	DeterministicMetric::DeterministicMetric(DatasetID datasetID, MetricID metricID, double value) : datasetID(datasetID), metricID(metricID), value(value) {}
 
 	void DeterministicMetric::commit() {
 		if (!log) return;
-		log->DeterministicMetric_commit(datasetID, metricID, value);
+		log->f << DETERMINISTICMETRIC_COMMIT<<";" << datasetID << " ;" << metricID << " ;" << value << "\n";
 	}
 
-	MachineMetric::MachineMetric(MachineID machineID, MetricID metricID, double value) : machineID(machineID), metricID(metricID), value(value) { if (!log) return; log->MachineMetric(machineID, metricID,  value);}
+	MachineMetric::MachineMetric(MachineID machineID, MetricID metricID, double value) : machineID(machineID), metricID(metricID), value(value) {}
 
 	void MachineMetric::commit() {
 		if (!log) return;
-		log->MachineMetric_commit(machineID,metricID, value);
+		log->f<< MACHINEMETRIC_COMMIT<<";" << machineID <<" ;"<< metricID<<" ;" << value << "\n";
 	}
 
-	Execution::Execution(TrialID trialID, MachineID machineID) : trialID(trialID), machineID(machineID){ if (!log) return; log->Execution(trialID,machineID);  ecs = ecs_pre; }
+	Execution::Execution(TrialID trialID, MachineID machineID) : trialID(trialID), machineID(machineID) {ecs=ecs_pre;}
 
 	void Execution::commit() {
 		if (!log) return;
-		this->ID = log->Execution_commit(trialID,machineID);
+    static int id_count = 0;
+		std::ostringstream s;
+		s<<EXECUTION_COMMIT<<";" << machineID << ";" << trialID << ";" << ++id_count << "\n";
+		std::string key = s.str();
+		log->f << key ;
+    this->ID = id_count;
 		this->ecs = ecs_ok;
 	}
 
@@ -176,137 +181,130 @@ namespace eiger{
 			ApplicationID applicationID, DatasetID datasetID,
 			PropertiesID propertiesID) : 
 		dataCollectionID(dataCollectionID), machineID(machineID),
-		applicationID(applicationID), datasetID(datasetID), propertiesID(propertiesID) { if (!log) return; log->Trial(dataCollectionID,machineID, applicationID, datasetID, propertiesID); ecs = ecs_pre; }
+		applicationID(applicationID), datasetID(datasetID), propertiesID(propertiesID) {ecs=ecs_pre;}
 
 	void Trial::commit() {
 		if (!log) return;
-		this->ID = log->Trial_commit(dataCollectionID,machineID,applicationID,datasetID,propertiesID);
+    static int id_count = 0;
+		std::ostringstream s;
+		s<< TRIAL_COMMIT<<";" << dataCollectionID << " ;" <<
+                                machineID << " ;" <<
+                                applicationID << " ;" <<
+                                datasetID << " ;" <<
+                                propertiesID << ";" << ++id_count << "\n";
+		std::string key = s.str();
+		log->f << key ;
+    this->ID = id_count;
 		this->ecs = ecs_ok;
 	}
 
-	/*
-	   std::vector<DynamicMetric>* Trial::getDynamicMetrics() {
-
-	   }
-	 */
-
-	Machine::Machine(std::string name, std::string description) : name(name), description(description) { if (!log) return; log->Machine(name,description); ecs = ecs_pre; }
+	Machine::Machine(std::string name, std::string description) : name(name), description(description) {ecs=ecs_pre;}
 
 	void Machine::commit() {
 		if (!log) return;
-		this->ID = log->Machine_commit(name,description);
+		std::ostringstream s;
+		s << FEMACHINE_COMMIT<<";" <<name <<";"<< description ;
+		std::string key = s.str();
+		log->f << key ;
+    int id;
+		if (log->Machine_idmap.find(key) != log->Machine_idmap.end()) {
+			id = log->Machine_idmap[key];
+    } else {
+      id = log->Machine_idmap[key] = 1+log->Machine_idmap.size();
+    }
+    log->f << ";" << id << "\n";
+		this->ID = id;
 		this->ecs = ecs_ok;
 	}
-
-	/*
-	   std::vector<MachineMetric>* Machine::getMachineMetrics() {
-
-	   }
-	 */
 
 	Dataset::Dataset(ApplicationID applicationID, std::string name, 
 			std::string description, std::string url) : 
 		applicationID(applicationID), name(name),
-		description(description), url(url) { if (!log) return; log->Dataset(applicationID,name,description,url); ecs = ecs_pre; }
+		description(description), url(url) {ecs=ecs_pre;}
 
 	void Dataset::commit() {
 		if (!log) return;
+		std::ostringstream s;
+		s << DATASET_COMMIT<<";" <<applicationID <<";"<<name <<";"<< description <<";"<< url ;
+		std::string key = s.str();
+		log->f << key ;
+    int id;
+    if (log->Dataset_idmap.find(key) != log->Dataset_idmap.end()) {
+			id = log->Dataset_idmap[key];
+    } else {
+      id = log->Dataset_idmap[key] = 1+log->Dataset_idmap.size();
+    }
+    log->f << ";" << id << "\n";
+    this->ID = id;
 		this->created = "somedaysoon";
-		this->ID = log->Dataset_commit(applicationID,name,description,url);
 		this->ecs = ecs_ok;
 	}
 
-	/*
-	   std::vector<StaticMetric>* Dataset::getStaticMetrics() {
-
-	   }
-	 */
-
 	Application::Application(std::string name, std::string description) : 
-		name(name), description(description) { if (!log) return; log->Application(name, description); ecs = ecs_pre; }
+		name(name), description(description) {ecs=ecs_pre;}
 
 	void Application::commit() {
 		if (!log) return;
-		this->ID = log->Application_commit(name,description);
+		std::ostringstream s;
+		s << APPLICATION_COMMIT<<";" <<name <<";"<< description ;
+		std::string key = s.str();
+		log->f << key;
+    int id;
+		if (log->Application_idmap.find(key) != log->Application_idmap.end()) {
+			id = log->Application_idmap[key];
+    } else {
+      id = log->Application_idmap[key] = 1+log->Application_idmap.size();
+    }
+    log->f << ";" << id << "\n";
+		this->ID = id;
 		this->ecs = ecs_ok;
 	}
 
-	/*
-	   std::vector<Dataset>* Application::getDatasets() {
-
-	   }
-	 */
-#if NEEDSQLREAD
-
-	DataCollection::DataCollection(int ID){
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT name, description, created FROM datacollections WHERE ID=" << ID << ";";
-			mysqlpp::StoreQueryResult res = q.store();
-
-			this->ID = ID;
-			this->name = (std::string) res[0]["name"];
-			this->description = (std::string) res[0]["description"];
-			this->created = (std::string) res[0]["created"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::DataCollection() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
-	}
-#endif
+	DataCollection::DataCollection(int ID) {}
 
 	DataCollection::DataCollection(std::string name, std::string description) : 
-		name(name), description(description) { if (!log) return; log->DataCollection(name,description); ecs = ecs_pre; }
+		name(name), description(description) {ecs=ecs_pre;}
 
 	void DataCollection::commit() {
 		if (!log) return;
-		this->ID = log->DataCollection_commit(name,description);
+    std::ostringstream s;
+    s << DATACOLLECTION_COMMIT<<";" <<name <<";"<< description ;
+    std::string key = s.str();
+    log->f << key;
+    int id;
+    if (log->DataCollection_idmap.find(key) != log->DataCollection_idmap.end()) {
+      id = log->DataCollection_idmap[key];
+    } else {
+      id = log->DataCollection_idmap[key] = 1+log->DataCollection_idmap.size();
+    }
+    log->f << ";" << id << "\n";
+		this->ID = id;
 		this->created = "somedaysoon";
 		this->ecs = ecs_ok;
 	}
 
-	/*
-	   std::vector<Trial>* DataCollection::getTrials() {
+	Properties::Properties(int ID) {}
 
-	   }
-	 */
-
-#if NEEDSQLREAD
-
-	Properties::Properties(int ID) {
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT trialID, propertyName, property FROM properties WHERE ID=" << ID << ";";
-			mysqlpp::StoreQueryResult res = q.store();
-
-			this->ID = ID;
-			this->trialID = (int) res[0]["trialID"];
-			this->propertyID = (int) res[0]["property"];
-			this->name = (std::string) res[0]["propertyName"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Properties() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
-	}
-#endif
-
-	Properties::Properties(std::string name, TrialID trialID, PropertiesID propertyID) : name(name), trialID(trialID), propertyID(propertyID) { if (!log) return; log->Properties(name,trialID,propertyID); ecs = ecs_pre; }
+	Properties::Properties(std::string name, TrialID trialID, PropertiesID propertyID) : name(name), trialID(trialID), propertyID(propertyID) {ecs=ecs_pre;}
 
 	void Properties::commit() {
 		if (!log) return;
-		this->ID = log->Properties_commit(name,trialID,propertyID);
+    std::ostringstream s;
+    s << PROPERTIES_COMMIT<<";" <<name <<";"<<trialID <<";"<<propertyID ;
+    std::string key = s.str();
+    log->f << key;
+    int id;
+    if (log->Properties_idmap.find(key) != log->Properties_idmap.end()) {
+      id = log->Properties_idmap[key];
+    } else {
+      id = log->Properties_idmap[key] = 1+log->Properties_idmap.size();
+    }
+    log->f << ";" << id << "\n";
+		this->ID = id;
 		this->ecs = ecs_ok;
 	}
 
 	std::string Metric::toString() {
-
 		std::string type;
 		switch(this->type){
 			case RESULT:
@@ -414,29 +412,6 @@ namespace eiger{
 
 		return ss.str();
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 } // end of namespace eiger
 
