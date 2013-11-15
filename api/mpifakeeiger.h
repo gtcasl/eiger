@@ -446,21 +446,13 @@ DERIVED_ID(PropertiesID);
 	void Execution(int trialID, int machineID) {
 //		f<< EXECUTION<<";" << trialID << " ;"<< machineID << "\n";
 	}
-	int Execution_commit(int trialID, int machineID) {
+	int Execution_commit(int machineID, int trialID) {
+    static int id_count = 0;
 		std::ostringstream s;
-		s<<EXECUTION_COMMIT<<";" << trialID << " ;"<< machineID ;
+		s<<EXECUTION_COMMIT<<";" << machineID << ";" << trialID << ";" << ++id_count << "\n";
 		std::string key = s.str();
 		f << key ;
-		if (Execution_idmap.find(key) != Execution_idmap.end()) {
-			int id = Execution_idmap[key];
-			f << ";" << id << "\n";
-			return id;
-                } else {
-			Execution_idmap[key] = 1+Execution_idmap.size() ;
-			int id = Execution_idmap[key];
-			f << ";" << id << "\n";
-			return id;
-		}
+    return id_count;
 	}
 	void Trial(int dataCollectionID, int machineID,
                         int  applicationID, int datasetID,
@@ -476,24 +468,16 @@ DERIVED_ID(PropertiesID);
 	int Trial_commit(int dataCollectionID, int machineID,
                         int  applicationID, int datasetID,
                         int propertiesID) {
+    static int id_count = 0;
 		std::ostringstream s;
 		s<< TRIAL_COMMIT<<";" << dataCollectionID << " ;" <<
                                 machineID << " ;" <<
                                 applicationID << " ;" <<
                                 datasetID << " ;" <<
-                                propertiesID;
+                                propertiesID << ";" << ++id_count << "\n";
 		std::string key = s.str();
 		f << key ;
-		if (Trial_idmap.find(key) != Trial_idmap.end()) {
-			int id = Trial_idmap[key];
-			f << ";" << id << "\n";
-			return id;
-                } else {
-			Trial_idmap[key] = 1+Trial_idmap.size() ;
-			int id = Trial_idmap[key];
-			f << ";" << id << "\n";
-			return id;
-		}
+    return id_count;
 	}
 	void Machine(std::string name, std::string description) {
 //		f << FEMACHINE<<";" <<name <<";"<< description << "\n";
@@ -601,8 +585,6 @@ DERIVED_ID(PropertiesID);
 	// these maps will all have int values in runtime commit order.
 	// across multiple ranks or runs, these are not unique and must
 	// be rationalized before feeding database.
-	std::map< std::string, int> Execution_idmap;
-	std::map< std::string, int> Trial_idmap;
 	std::map< std::string, int> Metric_idmap;
 	std::map< std::string, int> Machine_idmap;
 	std::map< std::string, int> Dataset_idmap;

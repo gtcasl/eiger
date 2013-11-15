@@ -16,6 +16,7 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <algorithm>
 // MySQL++
 #include <mysql++.h>
 #include <ssqls.h>
@@ -275,9 +276,9 @@ class FakeEigerLoader {
 		case Execution_commit:
 			{
 				executions_ids.push_back(toInt(v[3])); // id as logged
-				int ti = toInt(v[1]); 
-				int mi = toInt(v[2]);
-				executions_rows.push_back(executions(ti, mi));
+				int mi = toInt(v[1]); 
+				int ti = toInt(v[2]);
+				executions_rows.push_back(executions(mi, ti));
 			}
 			break;
 		case MachineMetric_commit:
@@ -317,16 +318,16 @@ class FakeEigerLoader {
   void finalize(){
     mysqlpp::Query query = conn.query();
 
-    resetIDs(datacollections_ids, local2dbDataCollection,
+    resetIDs(datacollections_ids, local2dbDataCollection, true,
              insertAndIDByName(datacollections_rows.begin(), 
                                datacollections_rows.end(), query));
-    resetIDs(machines_ids, local2dbMachine,
-             insertAndIDByName(machines_rows.begin(), 
+    resetIDs(machines_ids, local2dbMachine, true,
+             insertAndIDByName(machines_rows.begin(),
                                machines_rows.end(), query));
-    resetIDs(applications_ids, local2dbApplication,
+    resetIDs(applications_ids, local2dbApplication, true,
              insertAndIDByName(applications_rows.begin(), 
                                applications_rows.end(), query));
-    resetIDs(metrics_ids, local2dbMetric,
+    resetIDs(metrics_ids, local2dbMetric, true,
              insertAndIDByName(metrics_rows.begin(), 
                                metrics_rows.end(), query));
     
@@ -334,9 +335,11 @@ class FakeEigerLoader {
         it != datasets_rows.end(); ++it){
       it->applicationID = local2dbApplication[it->applicationID];
     }
-    resetIDs(datasets_ids, local2dbDataset,
-             insertAndIDByInsertID(datasets_rows.begin(), 
-                                   datasets_rows.end(), query));
+    std::vector<int> dsgids = insertAndIDByName(datasets_rows.begin(), 
+                               datasets_rows.end(), query);
+    resetIDs(datasets_ids, local2dbDataset, true, 
+             insertAndIDByName(datasets_rows.begin(), datasets_rows.end(), 
+                               query));
 
     for(std::vector<machine_metrics>::iterator it = machine_metrics_rows.begin(); 
         it != machine_metrics_rows.end(); ++it){
@@ -353,7 +356,7 @@ class FakeEigerLoader {
       it->applicationID = local2dbApplication[it->applicationID];
       it->datasetID = local2dbDataset[it->datasetID];
     }
-    resetIDs(trials_ids, local2dbTrial,
+    resetIDs(trials_ids, local2dbTrial, false,
              insertAndIDByInsertID(trials_rows.begin(), 
                                    trials_rows.end(), query));
     
@@ -362,7 +365,7 @@ class FakeEigerLoader {
       it->machineID = local2dbMachine[it->machineID];
       it->trialID = local2dbTrial[it->trialID];
     }
-    resetIDs(executions_ids, local2dbExecution,
+    resetIDs(executions_ids, local2dbExecution, false,
              insertAndIDByInsertID(executions_rows.begin(), 
                                    executions_rows.end(), query));
 
@@ -383,10 +386,26 @@ class FakeEigerLoader {
               deterministic_metrics_rows.end(), query, false);
   }
 
-  void resetIDs(const std::vector<int>& localids, std::map<int,int>& l2d, 
+  std::vector<int> stableUnique(const std::vector<int>& in){
+    std::vector<int> res;
+    for(std::vector<int>::const_iterator it = in.begin();
+        it != in.end(); ++it){
+      if(std::find(res.begin(), res.end(), *it) == res.end()){
+        res.push_back(*it);
+      }
+    }
+    return res;
+  }
+
+  void resetIDs(std::vector<int>& localids, std::map<int,int>& l2d, bool make_unique,
                 const std::vector<int>& globalids){
-    for(size_t i = 0; i < localids.size(); ++i){
-      l2d[localids[i]] = globalids[i];
+    if(make_unique){
+      localids = stableUnique(localids);
+    }
+    int i = 0;
+    for(std::vector<int>::iterator it = localids.begin();
+        it != localids.end(); ++it, ++i){
+      l2d[*it] = globalids[i];
     }
   }
 
