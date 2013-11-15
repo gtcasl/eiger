@@ -171,7 +171,7 @@ namespace eiger{
 
 	void Execution::commit() {
 		if (!log) return;
-		this->ID = log->Execution_commit(trialID,machineID);
+		this->ID = log->Execution_commit(machineID,trialID);
 		this->ecs = ecs_ok;
 	}
 
