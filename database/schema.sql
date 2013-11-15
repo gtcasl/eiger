@@ -104,6 +104,7 @@ CREATE TABLE datasets(
 	description text,
 	created DATETIME,
 	url text,
+    UNIQUE(name),
 	PRIMARY KEY (ID)
 );
 
