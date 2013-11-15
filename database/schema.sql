@@ -29,7 +29,7 @@ CREATE TABLE datacollections(
 
 CREATE TABLE applications(
     ID int(11) auto_increment not null,
-    name varchar(256),
+    name varchar(256) not null,
     description text,
     UNIQUE(name),
     PRIMARY KEY(ID)
@@ -38,7 +38,7 @@ CREATE TABLE applications(
 CREATE TABLE datasets(
     ID int(11) auto_increment not null,
     applicationID int(11),
-    name varchar(256),
+    name varchar(256) not null,
     description text,
     created DATETIME,
     url text,
@@ -49,7 +49,7 @@ CREATE TABLE datasets(
 
 CREATE TABLE machines(
     ID int(11) auto_increment not null,
-    name varchar(256),
+    name varchar(256) not null,
     description text,
     UNIQUE(name),
     PRIMARY KEY (ID)
@@ -58,7 +58,7 @@ CREATE TABLE machines(
 CREATE TABLE metrics(
     ID int(11) auto_increment not null,
     type enum('result', 'deterministic', 'nondeterministic', 'machine', 'other'),
-    name varchar(256),
+    name varchar(256) not null,
     description text,
     UNIQUE(name),
     PRIMARY KEY (ID)
