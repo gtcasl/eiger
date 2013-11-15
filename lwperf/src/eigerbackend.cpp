@@ -1,11 +1,7 @@
 #include <sstream>
 #include <map>
 #include <cassert>
-#ifdef _USE_FAKEEIGER 
-#include <mpifakeeiger.h>
-#else
 #include <eiger.h>
-#endif
 
 #include "datakind.h"
 #include "eigerbackend.h"
@@ -64,7 +60,7 @@ void EigerBackend::nextrow(const std::vector<std::pair<std::string, enum datakin
   eiger::DatasetID dsid = ds.getID();
 
   eiger::MachineID machid = machine_.getID();
-  eiger::Trial trial(dc_.getID(), machid, aid, dsid, eiger::PropertiesID(0,0));
+  eiger::Trial trial(dc_.getID(), machid, aid, dsid);
   trial.commit();
   eiger::Execution exec(trial.getID(),machid);
   exec.commit();

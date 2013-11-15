@@ -18,8 +18,8 @@ data points, known as {\em Trials}.
 
 \item[Trial] A Trial represents a single run of a program to collect training data.
 Each Trial is a single run of a particular {\em Application}, fed with data from a
-particular {\em Dataset}, executed on a particular {\em Machine}, modified by a particular
-environmental {\em Property}.  A Trial serves as a unifying structure under which all
+particular {\em Dataset}, executed on a particular {\em Machine}.
+A Trial serves as a unifying structure under which all
 Metrics are contained, including those from the Machine, the Application, and
 the performance metric.
 
@@ -44,11 +44,6 @@ DeterministicMetrics.
 run. This class is used to contain all Metrics that are invariant across
 Applications that run on the same hardware.
 
-\item[Property] The Property class is used to associate any extra environmental
-details associated with the state of execution of a particular Trial. This may
-include things such as concurrent workloads on the system or existing traffic
-in the network.
-
 \item[Metric] A Metric describes a measurable quantity of the system. 
 There are several types of Metrics:
 	\begin{description}
@@ -62,7 +57,7 @@ There are several types of Metrics:
 		rates, etc.
 	\item[machine] Values that pertain only to the Machine an Application is run
 		on. Memory capacity, clock speeds, etc.
-	\item[other] Miscellanea used to describe the system by the Property class.
+	\item[other] Miscellanea. 
 	\end{description}
 
 \item[DeterministicMetric] This class acts as a wrapper for a single result of a

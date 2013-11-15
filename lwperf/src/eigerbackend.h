@@ -3,11 +3,7 @@
 
 #include <vector>
 
-#ifdef _USE_FAKEEIGER 
-#include "mpifakeeiger.h"
-#else
 #include "eiger.h"
-#endif
 
 #include "datakind.h"
 

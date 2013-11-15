@@ -166,13 +166,12 @@ This document defines the API to Eiger. The primary implementation of this API u
     \item[machine] Points to the \texttt{Machine} this \texttt{Trial} was run on.
     \item[application] Points to the \texttt{Application} run for this run.
     \item[dataset] Points to the input \texttt{Dataset} for this run.
-    \item[properties] Points to the \texttt{Properties} of this run.
 	\end{description}
 	\end{quote}
   {\em Constructors}
 	\begin{quote}
 	\begin{description}
-    \item[\texttt{Trial(dataCollection, machine, application, dataset, properties)}] Creates a new \texttt{Trial} from the provided \texttt{dataCollection}, \texttt{machine}, \texttt{application}, \texttt{dataset}, and \texttt{properties}.
+    \item[\texttt{Trial(dataCollection, machine, application, dataset)}] Creates a new \texttt{Trial} from the provided \texttt{dataCollection}, \texttt{machine}, \texttt{application}, and \texttt{dataset}.
 	\end{description}
 	\end{quote}
 	{\em Methods}
@@ -206,32 +205,6 @@ This document defines the API to Eiger. The primary implementation of this API u
 	\begin{description}
     \item[\texttt{toString()}] Returns human readable string describing this object.
 	\item[\texttt{getID()}] Returns this object's unique ID.
-	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
-	\end{description}
-	\end{quote}
-
-%-----------------------------------------------------------
-\item[\texttt{Property}] Specifies any extra information about the trial
-%-----------------------------------------------------------
-  {\em Members}
-	\begin{quote}
-	\begin{description}
-    \item[ID] Unique identifier for each \texttt{Property} object.
-    \item[name] \texttt{Property} name.
-    \item[description] \texttt{Property} description.
-	\end{description}
-	\end{quote}
-  {\em Constructors}
-	\begin{quote}
-	\begin{description}
-    \item[\texttt{Properties(name, description)}] Creates a new \texttt{Property} from the provided \texttt{name} and \texttt{description}.
-	\end{description}
-	\end{quote}
-	{\em Methods}
-	\begin{quote}
-	\begin{description}
-		\item[\texttt{toString()}] Returns human readable string describing this object.
-		\item[\texttt{getID()}] Returns this object's unique ID.
 	\item[\texttt{commit()}] Sends this object to the Eiger database for storage.
 	\end{description}
 	\end{quote}
