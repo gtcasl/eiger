@@ -12,17 +12,92 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
+#include <map>
+#include <algorithm>
 
 // MySQL++ includes
 #include <mysql++.h>
+#include <ssqls.h>
 
 // Eiger includes
 #include <eiger.h>
 
 
 ///////////////////////////////////////////////////////////
+sql_create_2(datacollections, 1, 2, 
+             mysqlpp::sql_varchar, name,
+             mysqlpp::sql_text, description);
+sql_create_4(trials, 4, 0, 
+             mysqlpp::sql_int, dataCollectionID,
+             mysqlpp::sql_int, machineID,
+             mysqlpp::sql_int, applicationID,
+             mysqlpp::sql_int, datasetID);
+sql_create_2(executions, 2, 0, 
+             mysqlpp::sql_int, machineID,
+             mysqlpp::sql_int, trialID);
+sql_create_2(machines, 1, 2, 
+             mysqlpp::sql_varchar, name,
+             mysqlpp::sql_text, description);
+sql_create_3(machine_metrics, 2, 3, 
+             mysqlpp::sql_int, machineID,
+             mysqlpp::sql_int, metricID,
+             mysqlpp::sql_double, metric);
+sql_create_2(applications, 1, 2,
+             mysqlpp::sql_varchar, name,
+             mysqlpp::sql_text, description);
+sql_create_4(datasets, 2, 4,
+             mysqlpp::sql_int, applicationID,
+             mysqlpp::sql_varchar, name,
+             mysqlpp::sql_text, description,
+             mysqlpp::sql_text, url);
+sql_create_3(metrics, 2, 3,
+             mysqlpp::sql_enum, type,
+             mysqlpp::sql_varchar, name,
+             mysqlpp::sql_text, description);
+sql_create_3(nondeterministic_metrics, 2, 3,
+             mysqlpp::sql_int, executionID,
+             mysqlpp::sql_int, metricID,
+             mysqlpp::sql_double, metric);
+sql_create_3(deterministic_metrics, 2, 3,
+             mysqlpp::sql_int, datasetID,
+             mysqlpp::sql_int, metricID,
+             mysqlpp::sql_double, metric);
 
 namespace eiger{
+
+  /********
+   * Static vars
+   */
+  static std::string dbloc;
+  static std::string dbname;
+  static std::string user;
+  static std::string passwd;
+	
+  // map file local value to global db value.
+	// Each time we open a new log file, we must clear the idmaps with initLocalToGlobal.
+	static std::map<int, int > local2dbDataCollection;
+	static std::map<int, int > local2dbApplication;
+	static std::map<int, int > local2dbDataset;
+	static std::map<int, int > local2dbMachine;
+	static std::map<int, int > local2dbTrial;
+	static std::map<int, int > local2dbExecution;
+	static std::map<int, int > local2dbMetric;
+
+  // containers for bulk insertions
+#define MAKEROWVEC(X) \
+  static std::vector<X> X##_rows; \
+  static std::vector<int> X##_ids;
+  MAKEROWVEC(datacollections)
+  MAKEROWVEC(trials)
+  MAKEROWVEC(executions)
+  MAKEROWVEC(machines)
+  MAKEROWVEC(machine_metrics)
+  MAKEROWVEC(applications)
+  MAKEROWVEC(datasets)
+  MAKEROWVEC(metrics)
+  MAKEROWVEC(nondeterministic_metrics)
+  MAKEROWVEC(deterministic_metrics)
 
 	mysqlpp::Connection* conn;
 	error_t err;
@@ -61,57 +136,192 @@ namespace eiger{
 
 	}
 
+  std::vector<int> stableUnique(const std::vector<int>& in){
+    std::vector<int> res;
+    for(std::vector<int>::const_iterator it = in.begin();
+        it != in.end(); ++it){
+      if(std::find(res.begin(), res.end(), *it) == res.end()){
+        res.push_back(*it);
+      }
+    }
+    return res;
+  }
+
+  void resetIDs(std::vector<int>& localids, std::map<int,int>& l2d, bool make_unique,
+                const std::vector<int>& globalids){
+    if(make_unique){
+      localids = stableUnique(localids);
+    }
+    int i = 0;
+    for(std::vector<int>::iterator it = localids.begin();
+        it != localids.end(); ++it, ++i){
+      l2d[*it] = globalids[i];
+    }
+  }
+
+  template<typename T>
+  int insertAll(T first, T last, mysqlpp::Query& q, bool ignore){
+    bool empty = true;
+    std::string ignore_cmd = ignore ? " IGNORE " : " ";
+    if(first == last) return 0;
+    for(T it = first; it != last; ++it){
+      if(empty){
+        q << "INSERT" << ignore_cmd << "INTO `" << it->table() << "` (" 
+          << it->field_list() << ") VALUES (";
+      }else{
+        q << ",(";
+      }
+      q << it->value_list() << ")";
+      empty = false;
+    }
+    q.execute();
+    return q.insert_id();
+  }
+
+  template<typename T>
+  std::vector<int> insertAndIDByInsertID(T first, T last, mysqlpp::Query& q){
+    bool empty = true;
+    int first_id = insertAll(first, last, q, false);
+    std::vector<int> retval;
+    if(first == last) return retval;
+    int i = 0;
+    for(T it = first; it != last; ++it, ++i){
+      retval.push_back(first_id + i);
+    }
+    return retval;
+  }
+
+  template<typename T>
+  std::vector<int> insertAndIDByName(T first, T last, mysqlpp::Query& q){
+    bool empty = true;
+    insertAll(first, last, q, true);
+    if(first == last) return std::vector<int>();
+    for(T it = first; it != last; ++it){
+      if(empty){
+        q << "SELECT ID FROM `" << it->table() << "` WHERE (" << it->field_list()
+          << ") IN ((";
+      }else{
+        q << ",(";
+      }
+      q << it->value_list() << ")";
+      empty = false;
+    }
+    empty = true;
+    for(T it = first; it != last; ++it){
+      if(empty){
+        q << ") ORDER BY FIELD(name, ";
+      }else{
+        q << ",";
+      }
+      q << "'" << it->name << "'";
+      empty = false;
+    }
+    q << ")";
+    mysqlpp::StoreQueryResult res = q.store();
+    std::vector<int> retval;
+    for(mysqlpp::StoreQueryResult::const_iterator it = res.begin();
+        it != res.end(); ++it){
+      retval.push_back((*it)[0]);
+    }
+    return retval;
+  }
+
+  template<typename T>
+  struct nameCompare{
+    std::string key_;
+    nameCompare(const std::string& key) : key_(key) {}
+    bool operator()(const T& yours) const { return yours.name == key_; }
+  };
+
 	void Connect(std::string databaseLocation,
 			std::string databaseName,
 			std::string username,
 			std::string password) {
-
-		try{
-			conn = new mysqlpp::Connection(true);
-			conn->connect(databaseName.c_str(), databaseLocation.c_str(), username.c_str(), password.c_str());
-		}
-		catch (const mysqlpp::Exception& er){
-			std::cerr << "eiger::Connect() Error: " << er.what() << std::endl;
-		}
+    dbloc = databaseLocation;
+    dbname = databaseName;
+    user = username;
+    passwd = password;
 	}
 
 	void Disconnect(){
-		if(conn != NULL)
-			delete conn;
+		try{
+      mysqlpp::Connection conn(true);
+			conn.connect(dbname.c_str(), dbloc.c_str(), user.c_str(), passwd.c_str());
+      mysqlpp::Query query = conn.query();
+
+      resetIDs(datacollections_ids, local2dbDataCollection, true,
+               insertAndIDByName(datacollections_rows.begin(), 
+                                 datacollections_rows.end(), query));
+      resetIDs(machines_ids, local2dbMachine, true,
+               insertAndIDByName(machines_rows.begin(),
+                                 machines_rows.end(), query));
+      resetIDs(applications_ids, local2dbApplication, true,
+               insertAndIDByName(applications_rows.begin(), 
+                                 applications_rows.end(), query));
+      resetIDs(metrics_ids, local2dbMetric, true,
+               insertAndIDByName(metrics_rows.begin(), 
+                                 metrics_rows.end(), query));
+      
+      for(std::vector<datasets>::iterator it = datasets_rows.begin(); 
+          it != datasets_rows.end(); ++it){
+        it->applicationID = local2dbApplication[it->applicationID];
+      }
+      std::vector<int> dsgids = insertAndIDByName(datasets_rows.begin(), 
+                                 datasets_rows.end(), query);
+      resetIDs(datasets_ids, local2dbDataset, true, 
+               insertAndIDByName(datasets_rows.begin(), datasets_rows.end(), 
+                                 query));
+
+      for(std::vector<machine_metrics>::iterator it = machine_metrics_rows.begin(); 
+          it != machine_metrics_rows.end(); ++it){
+        it->machineID = local2dbMachine[it->machineID];
+        it->metricID = local2dbMetric[it->metricID];
+      }
+      insertAll(machine_metrics_rows.begin(), machine_metrics_rows.end(), query, 
+                false);
+
+      for(std::vector<trials>::iterator it = trials_rows.begin(); 
+          it != trials_rows.end(); ++it){
+        it->dataCollectionID = local2dbDataCollection[it->dataCollectionID];
+        it->machineID = local2dbMachine[it->machineID];
+        it->applicationID = local2dbApplication[it->applicationID];
+        it->datasetID = local2dbDataset[it->datasetID];
+      }
+      resetIDs(trials_ids, local2dbTrial, false,
+               insertAndIDByInsertID(trials_rows.begin(), 
+                                     trials_rows.end(), query));
+      
+      for(std::vector<executions>::iterator it = executions_rows.begin(); 
+          it != executions_rows.end(); ++it){
+        it->machineID = local2dbMachine[it->machineID];
+        it->trialID = local2dbTrial[it->trialID];
+      }
+      resetIDs(executions_ids, local2dbExecution, false,
+               insertAndIDByInsertID(executions_rows.begin(), 
+                                     executions_rows.end(), query));
+
+      for(std::vector<nondeterministic_metrics>::iterator it = nondeterministic_metrics_rows.begin(); 
+          it != nondeterministic_metrics_rows.end(); ++it){
+        it->executionID = local2dbExecution[it->executionID];
+        it->metricID = local2dbMetric[it->metricID];
+      }
+      insertAll(nondeterministic_metrics_rows.begin(), 
+                nondeterministic_metrics_rows.end(), query, false);
+
+      for(std::vector<deterministic_metrics>::iterator it = deterministic_metrics_rows.begin(); 
+          it != deterministic_metrics_rows.end(); ++it){
+        it->datasetID = local2dbDataset[it->datasetID];
+        it->metricID = local2dbMetric[it->metricID];
+      }
+      insertAll(deterministic_metrics_rows.begin(), 
+                deterministic_metrics_rows.end(), query, false);
+		}
+		catch (const mysqlpp::Exception& er){
+			std::cerr << "eiger::Disconnect() Error: " << er.what() << std::endl;
+		}
 	}
 
 	//-----------------------------------------------------------------
-
-	Metric::Metric(int ID) {
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT type, name, description FROM metrics WHERE ID=" << ID << ";";
-			mysqlpp::StoreQueryResult res = q.store();
-
-			this->ecs = ecs_ok;
-			this->ID = ID;
-			this->name = (std::string) res[0]["name"];
-			this->description = (std::string) res[0]["description"];
-
-			std::string type_name = (std::string) res[0]["type"];
-			if(!type_name.compare("result"))
-				this->type = RESULT;
-			else if(!type_name.compare("deterministic"))
-				this->type = DETERMINISTIC;
-			else if(!type_name.compare("nondeterministic"))
-				this->type = NONDETERMINISTIC;
-			else if(!type_name.compare("machine"))
-				this->type = MACHINE;
-			else if(!type_name.compare("other"))
-				this->type = OTHER;
-		}
-		catch(const mysqlpp::BadQuery& er) {
-			std::cerr << "eiger::Metric() Error: " << er.what() << std::endl;
-			this->ecs = ecs_fail;
-		}
-
-	}
 
 	Metric::Metric(metric_type_t type, std::string name, std::string description) : type(type), name(name), description(description) { ecs = ecs_pre; }
 
@@ -135,105 +345,47 @@ namespace eiger{
 				type_name = "other";
 				break;
 		}
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT IGNORE INTO metrics (type, name, description) VALUES(" << mysqlpp::quote << type_name << "," << mysqlpp::quote << name << "," << mysqlpp::quote << description << ");";
-			mysqlpp::SimpleResult res = q.execute();
-
-			q << "SELECT ID FROM metrics WHERE name=" << mysqlpp::quote << name <<";";
-			mysqlpp::StoreQueryResult myID = q.store();
-			this->ID = (int) myID[0]["ID"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Metric::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
+    std::vector<metrics>::iterator it = std::find_if(metrics_rows.begin(), 
+                                                     metrics_rows.end(), 
+                                                     nameCompare<metrics>(name));
+    int id;
+    if(it != metrics_rows.end()){
+      id = std::distance(metrics_rows.begin(), it);
+    } else {
+      id = metrics_rows.size();
+      metrics_rows.push_back(metrics(type_name, name, description));
+    }
+    metrics_ids.push_back(id);
+    ecs = ecs_ok;
+    ID = id;
 	}
-
-// used to control formatting of insert stream for double values. 
-#define EIGERDB_FP_PREC 18
 
 	NondeterministicMetric::NondeterministicMetric(ExecutionID executionID, MetricID metricID, double value) :  executionID(executionID), metricID(metricID), value(value) {}
 
 	void NondeterministicMetric::commit() {
-		try{
-			std::ostringstream fpout;
-			fpout.precision(EIGERDB_FP_PREC); 
-			fpout << value;
-			mysqlpp::Query q = conn->query();
-			q << "INSERT INTO nondeterministic_metrics (executionID, metricID, metric) VALUES(" << executionID << "," << metricID << "," << fpout.str() << ");";
-
-			mysqlpp::SimpleResult res = q.execute();
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::NondeterministicMetric::commit() Error: " << er.what() << std::endl;
-		}
-
+    nondeterministic_metrics_rows.push_back(nondeterministic_metrics(executionID, metricID, value));
 	}
 
 	DeterministicMetric::DeterministicMetric(DatasetID datasetID, MetricID metricID, double value) : datasetID(datasetID), metricID(metricID), value(value) {}
 
 	void DeterministicMetric::commit() {
-		try{
-			std::ostringstream fpout;
-			fpout.precision(EIGERDB_FP_PREC); 
-			fpout << value;
-			mysqlpp::Query q = conn->query();
-			q << "INSERT INTO deterministic_metrics (datasetID, metricID, metric) VALUES(" << datasetID << "," << metricID << "," << fpout.str() << ");";
-
-			mysqlpp::SimpleResult res = q.execute();
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::DeterministicMetric::commit() Error: " << er.what() << std::endl;
-		}
-
-
+    deterministic_metrics_rows.push_back(deterministic_metrics(datasetID, metricID, value));
 	}
 
 	MachineMetric::MachineMetric(MachineID machineID, MetricID metricID, double value) : machineID(machineID), metricID(metricID), value(value) {}
 
 	void MachineMetric::commit() {
-		try{
-			mysqlpp::Query q = conn->query();
-
-			q << "SELECT COUNT(*) FROM machine_metrics WHERE machineID=" << machineID << " AND metricID=" << metricID <<";";
-			mysqlpp::StoreQueryResult exists = q.store();
-			//std::cout << "exists? " << (int) exists[0]["COUNT(*)"] << std::endl;
-			if((int) exists[0]["COUNT(*)"] == 0){
-				std::ostringstream fpout;
-				fpout.precision(EIGERDB_FP_PREC); 
-				fpout << value;
-				q << "INSERT INTO machine_metrics (machineID, metricID, metric) VALUES(" << machineID << "," << metricID << "," << fpout.str() << ");";
-				mysqlpp::SimpleResult res = q.execute();
-			}
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::MachineMetric::commit() Error: " << er.what() << std::endl;
-		}
-
+    machine_metrics_rows.push_back(machine_metrics(machineID, metricID, value));
 	}
 
 	Execution::Execution(TrialID trialID, MachineID machineID) : trialID(trialID), machineID(machineID){ ecs = ecs_pre;}
 
 	void Execution::commit() {
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT INTO executions (trialID, machineID) VALUES(" << 
-				trialID << "," <<
-				machineID << ");";
-
-			mysqlpp::SimpleResult res = q.execute();
-
-			this->ID = q.insert_id();
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Execution::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
+    int id = executions_rows.size();
+    executions_ids.push_back(id);
+    executions_rows.push_back(executions(machineID, trialID));
+    ecs = ecs_ok;
+    ID = id;
 	}
 
 	Trial::Trial(DataCollectionID dataCollectionID, MachineID machineID,
@@ -242,57 +394,30 @@ namespace eiger{
 		applicationID(applicationID), datasetID(datasetID) { ecs = ecs_pre; }
 
 	void Trial::commit() {
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT INTO trials (dataCollectionID, machineID, applicationID, datasetID) VALUES(" << 
-				dataCollectionID << "," <<
-				machineID << "," <<
-				applicationID << "," <<
-				datasetID << "," << ");";
-
-			mysqlpp::SimpleResult res = q.execute();
-
-			this->ID = q.insert_id();
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Trial::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
+    int id  = trials_rows.size();
+    trials_ids.push_back(id);
+    trials_rows.push_back(trials(dataCollectionID, machineID, applicationID, datasetID));
+    ID = id;
+    ecs = ecs_ok;
 	}
-
-	/*
-	   std::vector<DynamicMetric>* Trial::getDynamicMetrics() {
-
-	   }
-	 */
 
 	Machine::Machine(std::string name, std::string description) : name(name), description(description) { ecs = ecs_pre; }
 
 	void Machine::commit() {
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT IGNORE INTO machines (name, description) VALUES(" << mysqlpp::quote << name << "," << mysqlpp::quote << description << ");";
-			mysqlpp::SimpleResult res = q.execute();
-
-			q << "SELECT ID FROM machines WHERE name=" << mysqlpp::quote << name <<";";
-			mysqlpp::StoreQueryResult myID = q.store();
-			this->ID = (int) myID[0]["ID"];
-			ecs = ecs_ok; 
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Machine::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail; 
-		}
-
+    std::vector<machines>::iterator it = std::find_if(machines_rows.begin(), 
+                                                      machines_rows.end(), 
+                                                      nameCompare<machines>(name));
+    int id;
+    if(it != machines_rows.end()){
+      id = std::distance(machines_rows.begin(), it);
+    } else {
+      id = machines_rows.size();
+      machines_rows.push_back(machines(name, description));
+    }
+    machines_ids.push_back(id);
+    ecs = ecs_ok;
+    ID = id;
 	}
-
-	/*
-	   std::vector<MachineMetric>* Machine::getMachineMetrics() {
-
-	   }
-	 */
 
 	Dataset::Dataset(ApplicationID applicationID, std::string name, 
 			std::string description, std::string url) : 
@@ -300,117 +425,58 @@ namespace eiger{
 		description(description), url(url) { ecs = ecs_pre; }
 
 	void Dataset::commit() {
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT COUNT(*) FROM datasets WHERE applicationID=" << applicationID << " AND name=" << mysqlpp::quote << name <<";";
-			mysqlpp::StoreQueryResult exists = q.store();
-
-			if((int) exists[0]["COUNT(*)"] != 0){
-				q << "SELECT ID from datasets where applicationID=" << applicationID << " AND name=" << mysqlpp::quote << name << ";";
-				mysqlpp::StoreQueryResult dID = q.store();
-				this->ID = (int) dID[0]["ID"];
-			}
-			else{
-				q << "INSERT IGNORE INTO datasets (applicationID, name, description, created, url) VALUES(" << applicationID << "," << mysqlpp::quote << name << "," << mysqlpp::quote << description << ",NOW()," << mysqlpp::quote << url << ");";
-				mysqlpp::SimpleResult res = q.execute();
-
-				q << "SELECT ID,created FROM datasets WHERE applicationID=" << applicationID << " AND name=" << mysqlpp::quote << name <<";";
-				mysqlpp::StoreQueryResult myrow = q.store();
-				this->ID = (int) myrow[0]["ID"];
-				this->created = (std::string) myrow[0]["created"];
-			}
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Dataset::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
+    std::vector<datasets>::iterator it = std::find_if(datasets_rows.begin(), 
+                                                      datasets_rows.end(), 
+                                                      nameCompare<datasets>(name));
+    int id;
+    if(it != datasets_rows.end()){
+      id = std::distance(datasets_rows.begin(), it);
+    } else {
+      id = datasets_rows.size();
+      datasets_rows.push_back(datasets(applicationID, name, description, url));
+    }
+    datasets_ids.push_back(id);
+    ecs = ecs_ok;
+    ID = id;
 	}
-
-	/*
-	   std::vector<StaticMetric>* Dataset::getStaticMetrics() {
-
-	   }
-	 */
 
 	Application::Application(std::string name, std::string description) : 
 		name(name), description(description) { ecs = ecs_pre; }
 
 	void Application::commit() {
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT IGNORE INTO applications (name, description) VALUES(" << mysqlpp::quote << name << "," << mysqlpp::quote << description << ");";
-			mysqlpp::SimpleResult res = q.execute();
-
-			q << "SELECT ID FROM applications WHERE name=" << mysqlpp::quote << name <<";";
-			mysqlpp::StoreQueryResult myID = q.store();
-			this->ID = (int) myID[0]["ID"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::Application::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
-	}
-
-	/*
-	   std::vector<Dataset>* Application::getDatasets() {
-
-	   }
-	 */
-
-	DataCollection::DataCollection(int ID){
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "SELECT name, description, created FROM datacollections WHERE ID=" << ID << ";";
-			mysqlpp::StoreQueryResult res = q.store();
-
-			this->ID = ID;
-			this->name = (std::string) res[0]["name"];
-			this->description = (std::string) res[0]["description"];
-			this->created = (std::string) res[0]["created"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::DataCollection() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
+    std::vector<applications>::iterator it = std::find_if(applications_rows.begin(), 
+                                                          applications_rows.end(), 
+                                                          nameCompare<applications>(name));
+    int id;
+    if(it != applications_rows.end()){
+      id = std::distance(applications_rows.begin(), it);
+    } else {
+      id = applications_rows.size();
+      applications_rows.push_back(applications(name, description));
+    }
+    applications_ids.push_back(id);
+    ecs = ecs_ok;
+    ID = id;
 	}
 
 	DataCollection::DataCollection(std::string name, std::string description) : 
 		name(name), description(description) { ecs = ecs_pre; }
 
 	void DataCollection::commit() {
-
-		try{
-			mysqlpp::Query q = conn->query();
-			q << "INSERT IGNORE INTO datacollections (name, description, created) VALUES(" << mysqlpp::quote << name << "," << mysqlpp::quote << description << ", NOW());";
-			mysqlpp::SimpleResult res = q.execute();
-
-			q << "SELECT ID,created FROM datacollections WHERE name=" << mysqlpp::quote << name <<";";
-			mysqlpp::StoreQueryResult myrow = q.store();
-			this->ID = (int) myrow[0]["ID"];
-			this->created = (std::string) myrow[0]["created"];
-			ecs = ecs_ok;
-		}
-		catch(const mysqlpp::BadQuery& er){
-			std::cerr << "eiger::DataCollection::commit() Error: " << er.what() << std::endl;
-			ecs = ecs_fail;
-		}
-
+    std::vector<datacollections>::iterator it = std::find_if(datacollections_rows.begin(), 
+                                                             datacollections_rows.end(), 
+                                                             nameCompare<datacollections>(name));
+    int id;
+    if(it != datacollections_rows.end()){
+      id = std::distance(datacollections_rows.begin(), it);
+    } else {
+      id = datacollections_rows.size();
+      datacollections_rows.push_back(datacollections(name, description));
+    }
+    datacollections_ids.push_back(id);
+    ecs = ecs_ok;
+    ID = id;
 	}
-
-	/*
-	   std::vector<Trial>* DataCollection::getTrials() {
-
-	   }
-	 */
 
 	std::string Metric::toString() {
 
@@ -513,29 +579,5 @@ namespace eiger{
 
 		return ss.str();
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 } // end of namespace eiger
 
