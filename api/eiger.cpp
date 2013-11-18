@@ -21,7 +21,8 @@
 #include <ssqls.h>
 
 // Eiger includes
-#include <eiger.h>
+#include "fakekeywords.h"
+#include "eiger.h"
 
 
 ///////////////////////////////////////////////////////////
@@ -255,9 +256,10 @@ namespace eiger{
       resetIDs(machines_ids, local2dbMachine, true,
                insertAndIDByName(machines_rows.begin(),
                                  machines_rows.end(), query));
+      std::vector<int> apgids = insertAndIDByName(applications_rows.begin(), 
+                                 applications_rows.end(), query);
       resetIDs(applications_ids, local2dbApplication, true,
-               insertAndIDByName(applications_rows.begin(), 
-                                 applications_rows.end(), query));
+               apgids);
       resetIDs(metrics_ids, local2dbMetric, true,
                insertAndIDByName(metrics_rows.begin(), 
                                  metrics_rows.end(), query));
@@ -478,106 +480,71 @@ namespace eiger{
     ID = id;
 	}
 
-	std::string Metric::toString() {
+	void Metric::print(std::ostream& str) {
 
-		std::string type;
+		std::string type_name;
 		switch(this->type){
 			case RESULT:
-				type = "result";
+				type_name = "result";
 				break;
 			case DETERMINISTIC:
-				type = "deterministic";
+				type_name = "deterministic";
 				break;
 			case NONDETERMINISTIC:
-				type = "nondeterministic";
+				type_name = "nondeterministic";
 				break;
 			case MACHINE:
-				type = "machine";
+				type_name = "machine";
 				break;
 			case OTHER:
-				type = "other";
+				type_name = "other";
 				break;
 		}
-
-		std::stringstream ss;
-		ss << "Metric (ID: " << this->ID << ", datatype: " << type << ", name: " << this->name << ", description: " << this->description << ")";
-
-		return ss.str();
-
+		str << METRIC_COMMIT << ";" << type_name << ";" << name << ";" 
+        << description << ";" << ID;
 	}
 
-	std::string NondeterministicMetric::toString() {
-
-		std::stringstream ss;
-		ss << "NondeterministicMetric(metricID: " << this->metricID << ", executionID : " << this->executionID << ", value: " << this->value << ")";
-
-		return ss.str();
-
+	void NondeterministicMetric::print(std::ostream& str) {
+		str << NONDETERMINISTICMETRIC_COMMIT << ";" << executionID << ";" 
+        << metricID << ";" << value;
 	}
 
-	std::string DeterministicMetric::toString() {
-
-		std::stringstream ss;
-		ss << "DeterministicMetric(metricID: " << this->metricID << ", datasetID: " << this->datasetID << ", value: " << this->value << ")";
-
-		return ss.str();
-
+	void DeterministicMetric::print(std::ostream& str) {
+		str << DETERMINISTICMETRIC_COMMIT << ";" << datasetID << ";" << metricID 
+        << ";" << value;
 	}
 
-	std::string MachineMetric::toString() {
-
-		std::stringstream ss;
-		ss << "MachineMetric (metricID: " << this->metricID << ", machineID: " << this->machineID << ", value: " << this->value << ")";
-
-		return ss.str();
+	void MachineMetric::print(std::ostream& str) {
+		str << MACHINEMETRIC_COMMIT << ";" << machineID <<";"<< metricID << ";" 
+        << value;
 	}
 
-	std::string Execution::toString() {
-
-		std::stringstream ss;
-		ss << "Execution(ID: " << this->ID << ", trialID: " << this->trialID << ", machineID : " << this->machineID << ")";
-
-		return ss.str();
+	void Execution::print(std::ostream& str) {
+		str << EXECUTION_COMMIT << ";" << trialID << ";" << machineID << ";" 
+        << ID;
 	}
 
-	std::string Trial::toString() {
-
-		std::stringstream ss;
-		ss << "Trial (ID: " << this->ID << ", datacollectionID: " << this->dataCollectionID << ", machineID : " << this->machineID << ", applicationID: " << this->applicationID << ", datasetID: " << this->datasetID << ")";
-
-		return ss.str();
+	void Trial::print(std::ostream& str) {
+		str << TRIAL_COMMIT << ";" << dataCollectionID << ";" << machineID << ";" 
+        << applicationID << ";" << datasetID << ";" << ID;
 	}
 
-	std::string Machine::toString() {
-
-		std::stringstream ss;
-		ss << "Machine (ID: " << this->ID << ", name: " << this->name << ", description: " << this->description << ")";
-
-		return ss.str();
+	void Machine::print(std::ostream& str) {
+		str << FEMACHINE_COMMIT << ";" << name << ";" << description << ";" << ID;
 	}
 
-	std::string Application::toString() {
-
-		std::stringstream ss;
-		ss << "Application (ID: " << this->ID << ", name: " << this->name << ", description: " << this->description << ")";
-
-		return ss.str();
+	void Application::print(std::ostream& str) {
+		str << APPLICATION_COMMIT << ";" << name << ";" << description << ";" << ID;
 	}
 
-	std::string Dataset::toString() {
-
-		std::stringstream ss;
-		ss << "Dataset (ID: " << this->ID << ", name: " << this->name << ", description: " << this->description << ", created: " << this->created << ", url: " << this->url << ")";
-
-		return ss.str();
+	void Dataset::print(std::ostream& str) {
+		str << DATASET_COMMIT << ";" << applicationID << ";" << name << ";" 
+      << description << ";" << url << ";" << ID;
 	}
 
-	std::string DataCollection::toString() {
-
-		std::stringstream ss;
-		ss << "DataCollection (ID: " << this->ID << ", name: " << this->name << ", description: " << this->description << ", created: " << this->created << ")";
-
-		return ss.str();
+	void DataCollection::print(std::ostream& str) {
+    str << DATACOLLECTION_COMMIT << ";" << name << ";" << description << ";" 
+        << ID;
 	}
 } // end of namespace eiger
 

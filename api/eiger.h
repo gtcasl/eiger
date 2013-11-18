@@ -56,9 +56,14 @@ namespace eiger{
                       OTHER};
 
   class EigerClass {
+    protected:
+      virtual void print(std::ostream& str) const = 0;
     public: 
-      virtual std::string toString() = 0;
 			virtual void commit() = 0;
+      friend std::ostream& operator<<(std::ostream& str, const EigerClass& me){
+        me.print(str);
+        return str;
+      }
   };
 
 // base for typesafe int ID types, used with covariant return getID.
@@ -133,10 +138,11 @@ DERIVED_ID(DataCollectionID);
       Metric(metric_type_t type, std::string name, std::string description);
 
 			// Methods
-      std::string toString();
 			void commit();
 
       COVARIANT_GETID(MetricID);
+    protected:
+      void print(std::ostream& str);
   };
 
   class NondeterministicMetric: EigerClass {
@@ -150,9 +156,10 @@ DERIVED_ID(DataCollectionID);
       NondeterministicMetric(ExecutionID executionID, MetricID metricID, double value);
 
 			// Methods
-      std::string toString();
 			void commit();
 
+    protected:
+      void print(std::ostream& str);
   };
 
   class DeterministicMetric: EigerClass {
@@ -166,9 +173,10 @@ DERIVED_ID(DataCollectionID);
       DeterministicMetric(DatasetID datasetID, MetricID metricID, double value);
 
 			// Methods
-      std::string toString();
 			void commit();
 
+    protected:
+      void print(std::ostream& str);
   };
 
   class MachineMetric : EigerClass {
@@ -182,9 +190,10 @@ DERIVED_ID(DataCollectionID);
       MachineMetric(MachineID machineID, MetricID metricID, double value);
 
 			// Methods
-      std::string toString();
 			void commit();
 
+    protected:
+      void print(std::ostream& str);
   };
 
   class Execution : public EigerIdentifiedClass {
@@ -197,10 +206,11 @@ DERIVED_ID(DataCollectionID);
 	  Execution(TrialID trialID, MachineID machineID);
 
 	  		// Methods
-	  std::string toString();
 	  void commit();
 	  COVARIANT_GETID(ExecutionID);
 
+    protected:
+    void print(std::ostream& str);
   };
 
 
@@ -218,11 +228,12 @@ DERIVED_ID(DataCollectionID);
 
 			// Methods
       //std::vector<DynamicMetric>* getDynamicMetrics();
-      std::string toString();
 			void commit();
 
       COVARIANT_GETID(TrialID);
 
+    protected:
+      void print(std::ostream& str);
   };
 
   class Machine : public EigerIdentifiedClass {
@@ -236,10 +247,11 @@ DERIVED_ID(DataCollectionID);
 			
 			// Methods
       //std::vector<MachineMetric>* getMachineMetrics();
-      std::string toString();
 			void commit();
       COVARIANT_GETID(MachineID);
       
+    protected:
+      void print(std::ostream& str);
   };
 
   class Dataset : public EigerIdentifiedClass { 
@@ -257,10 +269,11 @@ DERIVED_ID(DataCollectionID);
 
 			// Methods
       //std::vector<StaticMetric>* getStaticMetrics();
-      std::string toString();
 			void commit();
-
       COVARIANT_GETID(DatasetID);
+
+    protected:
+      void print(std::ostream& str);
   };
 
   class Application : public EigerIdentifiedClass {
@@ -274,10 +287,11 @@ DERIVED_ID(DataCollectionID);
 
 			// Methods
       //std::vector<Dataset>* getDatasets();
-      std::string toString();
       void commit();
       COVARIANT_GETID(ApplicationID);
 
+    protected:
+      void print(std::ostream& str);
   };
 
   class DataCollection : public EigerIdentifiedClass {
@@ -295,10 +309,11 @@ DERIVED_ID(DataCollectionID);
 
 			// Methods
       //std::vector<Trial>* getTrials();
-      std::string toString();
 			void commit();
       COVARIANT_GETID(DataCollectionID);
 
+    protected:
+      void print(std::ostream& str);
   };
 
 } // end namespace eiger
