@@ -117,7 +117,7 @@ DERIVED_ID(DataCollectionID);
   };
 	
   
-  class EigerIdentifiedClass : EigerClass {
+  class EigerIdentifiedClass : public EigerClass {
     protected:
       int ID;
       commit_status ecs;
@@ -142,10 +142,10 @@ DERIVED_ID(DataCollectionID);
 
       COVARIANT_GETID(MetricID);
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
-  class NondeterministicMetric: EigerClass {
+  class NondeterministicMetric: public EigerClass {
     public:
 			// Members
       int executionID;
@@ -159,10 +159,10 @@ DERIVED_ID(DataCollectionID);
 			void commit();
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
-  class DeterministicMetric: EigerClass {
+  class DeterministicMetric: public EigerClass {
     public:
 			// Members
       int datasetID;
@@ -176,10 +176,10 @@ DERIVED_ID(DataCollectionID);
 			void commit();
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
-  class MachineMetric : EigerClass {
+  class MachineMetric : public EigerClass {
     public:
 			// Members
       int machineID;
@@ -193,7 +193,7 @@ DERIVED_ID(DataCollectionID);
 			void commit();
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
   class Execution : public EigerIdentifiedClass {
@@ -210,7 +210,7 @@ DERIVED_ID(DataCollectionID);
 	  COVARIANT_GETID(ExecutionID);
 
     protected:
-    void print(std::ostream& str);
+    void print(std::ostream& str) const;
   };
 
 
@@ -233,7 +233,7 @@ DERIVED_ID(DataCollectionID);
       COVARIANT_GETID(TrialID);
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
   class Machine : public EigerIdentifiedClass {
@@ -251,7 +251,7 @@ DERIVED_ID(DataCollectionID);
       COVARIANT_GETID(MachineID);
       
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
   class Dataset : public EigerIdentifiedClass { 
@@ -273,7 +273,7 @@ DERIVED_ID(DataCollectionID);
       COVARIANT_GETID(DatasetID);
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
   class Application : public EigerIdentifiedClass {
@@ -291,7 +291,7 @@ DERIVED_ID(DataCollectionID);
       COVARIANT_GETID(ApplicationID);
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
   class DataCollection : public EigerIdentifiedClass {
@@ -313,7 +313,7 @@ DERIVED_ID(DataCollectionID);
       COVARIANT_GETID(DataCollectionID);
 
     protected:
-      void print(std::ostream& str);
+      void print(std::ostream& str) const;
   };
 
 } // end namespace eiger

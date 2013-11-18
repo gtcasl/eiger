@@ -4,6 +4,7 @@
 static int fakekeys = 0; // expect whinage about unused.
 // 
 #define FECONNECT "CONNECT"
+#define FEDISCONNECT "DISCONNECT"
 #define FEVERSION "VERSION"
 #define FEFORMAT "FORMAT"
 
