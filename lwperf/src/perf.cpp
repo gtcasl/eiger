@@ -28,7 +28,6 @@ Perf::mpiArgs(int rank, int size){
 	perf_singleton->mpirank = rank;
 	perf_singleton->mpisize = size;
 	perf_singleton->mpiused = true;
-  getInvariants()["MPIrank"] = rank;
   getInvariants()["MPIsize"] = size;
 }
 
@@ -46,14 +45,6 @@ Perf::finalize() {
 	assert(perf_singleton!=0);
 	delete perf_singleton; 
 	perf_singleton = 0;
-}
-
-std::string
-Perf::makeFileName(std::string & filename) 
-{
-	std::stringstream s;
-	s << prefix << filename << "_mpi_" << mpisize << "." << mpirank <<suffix;
-	return s.str();
 }
 
 formatter<PERFBACKEND> *Perf::Log(enum Location l, std::string filename)

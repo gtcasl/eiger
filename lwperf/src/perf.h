@@ -94,8 +94,6 @@ private:
 	}
 	~Perf();
 
-	std::string makeFileName(std::string & filename);
-
 	formatter<PERFBACKEND> *getLog(enum Location l, std::string filename);
 
 public:
