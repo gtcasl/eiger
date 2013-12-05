@@ -74,10 +74,10 @@ public: /** USER interface; wrap these calls in PERFDECL to allow Perf suppressi
   }
 private:
 	std::map<enum Location, formatter<PERFBACKEND> *> log;
-	std::string prefix;
-	std::string suffix;
 	std::string machine;
 	std::string app;
+	std::string prefix;
+	std::string suffix;
 	bool append;
 	int mpirank;
 	int mpisize;

@@ -9,11 +9,11 @@
 
 class EigerBackend{
   private:
-  eiger::Application app_;
-  eiger::Machine machine_;
 	std::string sitename_;
 	std::vector<eiger::Metric> erow_;
 	eiger::DataCollection dc_;
+  eiger::Application app_;
+  eiger::Machine machine_;
 
 
   public:
