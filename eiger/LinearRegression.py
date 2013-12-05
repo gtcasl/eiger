@@ -86,7 +86,7 @@ class LinearRegression:
         assert(self.M == Y.shape[0])
     
 #
-    def select(self, pool, threshold=None, folds=4):
+    def select(self, pool, threshold=None, folds=None):
         """
         Selects a model based on a pool of models for each metric. Pool is an N-tuple, where each
         element p_i is a tuple of at least one element.
@@ -97,8 +97,12 @@ class LinearRegression:
 
         if threshold == None:
             threshold = 0
-        
-        kfold = KFold(self.M, n_folds=folds, shuffle=True)
+        if folds == None:
+            all_indices = np.indices((self.M,)).tolist()[0]
+            kfold = ((all_indices, all_indices),)
+        else:
+            kfold = KFold(self.M, n_folds=folds, shuffle=True)
+
         rsquared = float('-inf')
         i = 0
         for train_index, test_index in kfold:
