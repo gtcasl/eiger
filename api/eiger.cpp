@@ -110,6 +110,20 @@ namespace eiger{
     do_disconnect(dbloc, dbname, user, passwd, datacollections, applications,
                   datasets, machines, trials, executions, metrics,
                   nondet_metrics, det_metrics, machine_metrics);
+    dbloc.clear();
+    dbname.clear();
+    user.clear();
+    passwd.clear();
+    datacollections.clear();
+    applications.clear();
+    datasets.clear();
+    machines.clear();
+    trials.clear();
+    executions.clear();
+    metrics.clear();
+    nondet_metrics.clear();
+    det_metrics.clear();
+    machine_metrics.clear();
 	}
 
 	//-----------------------------------------------------------------
