@@ -380,7 +380,6 @@ def main():
                         help='Cutoff threshold of increase in adjusted R-squared value when adding new predictors to the model')
     parser.add_argument('--nfolds',
                         type=int,
-                        default=4,
                         help='Number of folds to use in k-fold cross validation.')
     
     
