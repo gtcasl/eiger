@@ -8,7 +8,7 @@ static Perf *perf_singleton = 0;
 void Perf::init(std::string machine, std::string app, std::string dbname, 
                 std::string prefix, std::string suffix) {
 	assert(perf_singleton==0);
-        char *esalt = getenv("PERF_APPEND");
+        const char *esalt = getenv("PERF_APPEND");
         bool append = (esalt != 0);
 	perf_singleton = new Perf(machine, app, prefix, suffix, append );
 
