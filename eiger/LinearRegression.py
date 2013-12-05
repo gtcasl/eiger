@@ -26,7 +26,10 @@ class Function:
     def __repr__(self):
         return self.encoded
     def __call__(self, vec):
-        return self.func(vec)
+        try:
+            return self.func(vec)
+        except OverflowError:
+            return 0.0
 
 class Model:
     """
