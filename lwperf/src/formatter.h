@@ -11,7 +11,11 @@
 #include <algorithm>
 
 #ifndef _USE_EIGER_MODEL
+#ifdef USING_SSTMAC
+#include <sstmac/sstmpi.h>
+#else
 #include <mpi.h>
+#endif
 #endif
 
 #include "datakind.h"
