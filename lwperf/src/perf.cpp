@@ -7,7 +7,8 @@
 static Perf *perf_singleton = 0;
 void Perf::init(std::string machine, std::string app, std::string dbname, 
                 std::string prefix, std::string suffix) {
-	assert(perf_singleton==0);
+	//assert(perf_singleton==0);
+  if(perf_singleton != 0) return;
         const char *esalt = getenv("PERF_APPEND");
         bool append = (esalt != 0);
 	perf_singleton = new Perf(machine, app, prefix, suffix, append );
@@ -33,6 +34,7 @@ Perf::mpiArgs(int rank, int size){
 
 void 
 Perf::finalize() {
+  if(perf_singleton==0) return;
 	std::map<enum Location, formatter<PERFBACKEND> *>::iterator it = perf_singleton->log.begin();
 	while (it != perf_singleton->log.end() ) {
 		delete it->second;
