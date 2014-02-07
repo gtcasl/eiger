@@ -48,7 +48,7 @@ class PCA:
         return self.components
 
     def nonzeroComponents(self):
-        return self.components[:,np.nonzero(self.loadings)[0]]
+        return np.nonzero(self.loadings)[0]
     
     def reduced(self, targetVariance = None, targetComponents = None):
         """
