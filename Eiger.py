@@ -47,7 +47,9 @@ def run(args):
 
         #pca
         training_pca = PCA.PCA(training_profile)
-        rotation_matrix = training_pca.nonzeroComponents()
+        nonzero_components = training_pca.nonzeroComponents()
+        ncols = np.shape(training_profile)[1]
+        rotation_matrix = np.eye(ncols)[:,nonzero_components]
         rotated_training_profile = np.dot(training_profile, rotation_matrix)
 
         print "Visualizing PCA..."
