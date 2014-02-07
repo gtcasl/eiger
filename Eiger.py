@@ -103,7 +103,9 @@ def run(args):
                                                     kmeans.cluster_centers_[i].tolist()])))
                 modelfile.write(repr(models[i]))
                 modelfile.write('\n') # need a trailing newline
-                print "Model: " + str(models[i])
+                print "Index\tMetric Name"
+                print '\n'.join("%s\t%s" % (i, metric_names[i]) for i in nonzero_components)
+                print "Model:\n" + str(models[i])
 
                 print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
            

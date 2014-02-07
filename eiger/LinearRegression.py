@@ -59,7 +59,7 @@ class Model:
         return "[%r](%s)\n%s" % (len(self.functions), weight_repr, func_repr)
 
     def __str__(self):
-        result = ''.join(["%.3e * %s + " % pred for pred in zip(self.weights, self.functions)])
+        result = '\n'.join(["%.3e * %s + " % pred for pred in zip(self.weights, self.functions)])
         return result[:-3] #get rid of trailing ' + ' string
 
 #
