@@ -32,8 +32,11 @@ def run(args):
                                               user=args['user'], 
                                               passwd=args['passwd'],
                                               host=args['host'])
-        metric_ids = training_DC.metricIndexByType('deterministic', 
-                                                   'nondeterministic')
+        if(args['predictor_metrics'] is not None):
+            metric_ids = training_DC.metricIndexByName(args['predictor_metrics'])
+        else:
+            metric_ids = training_DC.metricIndexByType('deterministic', 
+                                                       'nondeterministic')
         metric_names = [training_DC.metrics[mid][0] for mid in metric_ids]
         try:
             training_profile = training_DC.profile[:,metric_ids]
@@ -300,6 +303,9 @@ def main():
                         action='store_true',
                         default=False,
                         help='If set, send the actual and predicted values to stdout.')
+    parser.add_argument('--predictor-metrics',
+                        nargs='*',
+                        help='List of metrics to use when building a model.')
 
     """
     EXPERIMENT DATA ARGUMENTS

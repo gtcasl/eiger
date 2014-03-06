@@ -28,6 +28,10 @@ class DataCollection:
         """ Return column index corresponding to each metric type listed in args """
         return [idx for idx, x in enumerate(self.metrics) \
                 if x[2] in args]
+    def metricIndexByName(self, names):
+        """ Return column index corresponding to each metric name"""
+        return [idx for idx, x in enumerate(self.metrics) \
+                if x[0] in names]
 
     def _load(self, *args, **kwargs):
         """ load a data collection from db """
