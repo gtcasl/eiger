@@ -95,6 +95,25 @@ def run(args):
                 regression = LinearRegression.LinearRegression(cluster_profile,
                                                                cluster_performance)
                 pool = LinearRegression.powerLadderPool(cluster_profile.shape)
+                pool = [LinearRegression.identityFunction()]
+                for col in range(cluster_profile.shape[1]):
+                    if('inv_quadratic' in args['regressor_functions']):
+                        pool.append(LinearRegression.powerFunction(col, -2))
+                    if('inv_linear' in args['regressor_functions']):
+                        pool.append(LinearRegression.powerFunction(col, -1))
+                    if('inv_sqrt' in args['regressor_functions']):
+                        pool.append(LinearRegression.powerFunction(col, -.5))
+                    if('sqrt' in args['regressor_functions']):
+                        pool.append(LinearRegression.powerFunction(col, .5))
+                    if('linear' in args['regressor_functions']):
+                        pool.append(LinearRegression.powerFunction(col, 1))
+                    if('quadratic' in args['regressor_functions']):
+                        pool.append(LinearRegression.powerFunction(col, 2))
+                    if('log' in args['regressor_functions']):
+                        pool.append(LinearRegression.logFunction(col))
+                    if('cross' in args['regressor_functions']):
+                        for xcol in range(col, cluster_profile.shape[1]):
+                            pool.append(LinearRegression.crossFunction(col, xcol))
                 (models[i], r_squared) = regression.select(pool, 
                                                         threshold=args['threshold'],
                                                         folds=args['nfolds'])
@@ -391,6 +410,11 @@ def main():
     parser.add_argument('--nfolds',
                         type=int,
                         help='Number of folds to use in k-fold cross validation.')
+    parser.add_argument('--regressor-functions',
+                        nargs='*',
+                        default=['inv_quadratic', 'inv_linear', 'inv_sqrt', 
+                                 'sqrt', 'linear', 'quadratic', 'log', 'cross'],
+                        help='Regressor functions to use. Options are linear, quadratic, sqrt, inv_linear, inv_quadratic, inv_sqrt, log, and cross. Defaults to all.')
     
     
     return vars(parser.parse_args())
