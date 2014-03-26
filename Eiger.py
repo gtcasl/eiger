@@ -114,9 +114,9 @@ def run(args):
                     if('cross' in args['regressor_functions']):
                         for xcol in range(col, cluster_profile.shape[1]):
                             pool.append(LinearRegression.crossFunction(col, xcol))
-                (models[i], r_squared) = regression.select(pool, 
-                                                        threshold=args['threshold'],
-                                                        folds=args['nfolds'])
+                (models[i], r_squared, r_squared_adj) = regression.select(pool, 
+                        threshold=args['threshold'],
+                        folds=args['nfolds'])
                 
                 # dump model to file
                 modelfile.write('Model %s\n' % i)
@@ -129,7 +129,9 @@ def run(args):
                 print '\n'.join("%s\t%s" % (i, metric_names[i]) for i in nonzero_components)
                 print "Model:\n" + str(models[i])
 
-                print "Finished modeling cluster %s: r squared = %s" % (i,r_squared)
+                print "Finished modeling cluster %s:" % (i,)
+                print "r squared = %s" % (r_squared,)
+                print "adjusted r squared = %s" % (r_squared_adj,)
            
         # if we want to save the model file, copy it now
         if args['output'] == True:

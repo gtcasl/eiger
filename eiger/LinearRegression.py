@@ -95,7 +95,7 @@ class LinearRegression:
         element p_i is a tuple of at least one element.
         threshold is the adjusted rsquared value required to add a candidate function to the final model pool
         
-        returns (model(functions, weights), rsquared, trials)
+        returns (model(functions, weights), rsquared, adjusted rsquared)
         """
 
         if threshold == None:
@@ -107,26 +107,29 @@ class LinearRegression:
             kfold = KFold(self.M, n_folds=folds, shuffle=True)
 
         rsquared = float('-inf')
+        rsquared_adj = float('-inf')
         i = 0
         for train_index, test_index in kfold:
             print "Training fold %s" % i
             i = i + 1
-            candidate, candidate_rsquared = self.search_regression(threshold,
-                                                                   train_index,
-                                                                   test_index,
-                                                                   pool)
+            candidate, candidate_rsquared, candidate_rsquared_adj = \
+                self.search_regression(threshold,
+                        train_index,
+                        test_index,
+                        pool)
             print "Candidate R^2: %s" % candidate_rsquared
             if(candidate_rsquared > rsquared):
                 model = candidate
                 rsquared = candidate_rsquared
-        return (model, rsquared)
+                rsquared_adj = candidate_rsquared_adj
+        return (model, rsquared, rsquared_adj)
 
     def search_regression(self, threshold, train_index, test_index, pool):
         """
         Performs ordinary least-squares linear regression using the data set X and the
         indicated models.
         
-        returns (model functions, beta, rsquared)
+        returns (model functions, beta, rsquared, adjusted rsquared)
         """
 
         original_pool = copy.copy(pool)
@@ -169,7 +172,7 @@ class LinearRegression:
             else:
                 done = True
 
-        return (Model(M, Beta), model_r2)
+        return (Model(M, Beta), model_r2, model_r2_adj)
     
     def _evaluateModel(self, model, train_index, train_lookup, test_index, 
                        test_lookup, pool):
