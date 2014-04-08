@@ -6,19 +6,29 @@
 #include <string>
 #include <vector>
 #include <iostream> // debug only
-#include <sys/time.h>
+#include <time.h>
 #include <sys/resource.h>
 #include <algorithm>
-
-#ifndef _USE_EIGER_MODEL
-#ifdef USING_SSTMAC
-#include <sstmac/sstmpi.h>
-#else
-#include <mpi.h>
-#endif
-#endif
+#include <map>
+#include <string>
 
 #include "datakind.h"
+
+namespace {
+const long kNsecsPerSec = 1000000000;
+double get_elapsed(const timespec& start_time, const timespec& stop_time) {
+  double res = 0.0;
+  if (stop_time.tv_nsec < start_time.tv_nsec) {
+    res += (kNsecsPerSec + stop_time.tv_nsec - start_time.tv_nsec) /
+           (double)kNsecsPerSec;
+    res += stop_time.tv_sec - start_time.tv_sec - 1;
+  } else {
+    res += (stop_time.tv_nsec - start_time.tv_nsec) / (double)kNsecsPerSec;
+    res += stop_time.tv_sec - start_time.tv_sec;
+  }
+  return res;
+}
+}
 
 template <typename Backend>
 class formatter
@@ -27,7 +37,7 @@ protected:
   Backend backend_;
   std::vector<std::pair<std::string, enum datakind> > headers;
 	std::vector<double> row;
-	double t0;
+  timespec start_time;
 
 public:
   std::map<std::string,double> invariants;
@@ -88,22 +98,23 @@ public:
 	// set a zero time reference
 	void start()
   {
-#ifndef _USE_EIGER_MODEL
-    t0 = MPI_Wtime(); 
-#endif
+    double res = clock_gettime(CLOCK_MONOTONIC, &start_time);
+    if(res != 0){
+      std::cerr << "Unable to get current time." << std::endl;
+      exit(-1);
+    }
   }
 	// compute/store seconds and any other perf counters since last start
 	void stop()
   {
-#ifndef _USE_EIGER_MODEL
-    double stamp = MPI_Wtime();
-    double dt = stamp - t0;
-    put(dt);
+    timespec stop_time;
+    clock_gettime(CLOCK_MONOTONIC, &stop_time);
+    double elapsed = get_elapsed(start_time, stop_time);
+    put(elapsed);
     for(std::map<std::string,double>::const_iterator it = invariants.begin();
         it != invariants.end(); ++it){
       put(it->second);
     }
-#endif
   }
 };
 
