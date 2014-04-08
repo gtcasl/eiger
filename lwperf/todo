@@ -1,1 +1,9 @@
-multi-language updateMixed.sh script is needed.
+Interface with PAPI:
+Initialize PAPI library and set up eventsets.
+    Should happen in PERF::init().
+Specify metrics to be recorded, and their types, probably at compile-time.
+    All nondeterministic.
+Call PAPI_start in formatter.h::start() and PAPI_stop in formatter.h::stop()
+    'put' all read counters.
+Make sure that when we try and init the counters, if a counter doesn't exist we blow up.
+Add PAPI to build requirements of lwperf.
