@@ -16,6 +16,16 @@ api/autom4te.cache/*
 api/config/*
 api/configure
 api/m4/l*
+api/.deps/*
+api/.libs/*
+api/Makefile
+api/config.log
+api/config.status
+api/*.o
+api/*.lo
+api/*.la
+api/libtool
+api/eiger-loader
 documentation/*.aux
 documentation/*.log
 documentation/*.toc
