@@ -7,3 +7,6 @@ Call PAPI_start in formatter.h::start() and PAPI_stop in formatter.h::stop()
     'put' all read counters.
 Make sure that when we try and init the counters, if a counter doesn't exist we blow up.
 Add PAPI to build requirements of lwperf.
+
+Add in timer so we can handle overflow.
+    Necessary? Are any compute regions greater than ~60 secs?
