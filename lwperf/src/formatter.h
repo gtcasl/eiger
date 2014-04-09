@@ -150,7 +150,7 @@ public:
     }
 
     put(elapsed_time);
-    put(elapsed_energy / (double) 1e-9);
+    put(elapsed_energy * (double) 1e-9);
     for(std::map<std::string,double>::const_iterator it = invariants.begin();
         it != invariants.end(); ++it){
       put(it->second);
