@@ -10,7 +10,7 @@ class NullBackend{
 
     void addCol(const std::string& label, const enum datakind k) {}
 
-    NullBackend(std::string sitename, std::string machine, bool append=false) {}
+    NullBackend(std::string sitename, std::string machine, std::string applicaion, bool append=false) {}
 };
 
 #endif
