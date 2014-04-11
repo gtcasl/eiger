@@ -19,7 +19,7 @@ class CSVBackend{
                  const std::vector<double>& row);
     void addCol(const std::string& label, const enum datakind kind) {}
 
-    CSVBackend(std::string filename, std::string machine, bool append=false);
+    CSVBackend(std::string filename, std::string machine, std::string application, bool append=false);
     ~CSVBackend();
 };
 

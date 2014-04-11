@@ -5,8 +5,8 @@
 
 enum datakind;
 
-CSVBackend::CSVBackend(std::string filename, std::string machine, bool append) 
-  : filename_(filename) 
+CSVBackend::CSVBackend(std::string filename, std::string machine, 
+    std::string application, bool append) : filename_(filename) 
 {
     f_ = fopen(filename_.c_str(),(append?"a+":"w+"));
     if(!f_){

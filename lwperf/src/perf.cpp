@@ -66,7 +66,7 @@ Perf::~Perf() {
 formatter<PERFBACKEND> *Perf::getLog(enum Location l, std::string filename) {
   formatter<PERFBACKEND> *cf = log[l];
   if (!cf) {
-    formatter<PERFBACKEND> * ncf = new formatter<PERFBACKEND>(filename, machine, getInvariants());
+    formatter<PERFBACKEND> * ncf = new formatter<PERFBACKEND>(filename, machine, app, getInvariants());
     switch (l) {
     case X: initX(ncf); break;
 #ifndef PERF_DISABLE

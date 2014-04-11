@@ -48,9 +48,9 @@ public:
 	@param append if not given true, any existing file is overwritten.
 	@param defmetrics if true, constructor is used alone, not part of inheriting class
 	*/
-	formatter(std::string filename, std::string machine, 
+ 	formatter(std::string filename, std::string machine, std::string application,
             std::map<std::string,double> invariants, bool append=false)
-    : backend_(filename, machine, append), invariants(invariants)
+    : backend_(filename, machine, application, append), invariants(invariants)
   {
     addCol("time", RESULT);
     for(std::map<std::string,double>::const_iterator it = invariants.begin();

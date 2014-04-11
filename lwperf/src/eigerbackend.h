@@ -10,6 +10,7 @@
 class EigerBackend{
   private:
 	std::string sitename_;
+  std::string appname_;
 	std::vector<eiger::Metric> erow_;
 	eiger::DataCollection dc_;
   eiger::Application app_;
@@ -23,7 +24,7 @@ class EigerBackend{
 
     void addCol(const std::string& label, const enum datakind k);
 
-    EigerBackend(std::string sitename, std::string machine, bool append=false);
+    EigerBackend(std::string sitename, std::string machine, std::string application, bool append=false);
 };
 
 #endif
