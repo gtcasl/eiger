@@ -44,7 +44,7 @@ CREATE TABLE datasets(
     url text,
     UNIQUE(name),
     PRIMARY KEY (ID),
-    FOREIGN KEY (applicationID) REFERENCES applications(ID)
+    FOREIGN KEY (applicationID) REFERENCES applications(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE machines(
@@ -68,8 +68,8 @@ CREATE TABLE machine_metrics(
     machineID int(11),
     metricID int(11),
     metric real,
-    FOREIGN KEY (machineID) REFERENCES machines(ID),
-    FOREIGN KEY (metricID) REFERENCES metrics(ID)
+    FOREIGN KEY (machineID) REFERENCES machines(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (metricID) REFERENCES metrics(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE trials(
@@ -80,10 +80,10 @@ CREATE TABLE trials(
     datasetID int(11),
     PRIMARY KEY (ID),
     INDEX (datasetID),
-    FOREIGN KEY (dataCollectionID) REFERENCES datacollections(ID),
-    FOREIGN KEY (machineID) REFERENCES machines(ID),
-    FOREIGN KEY (applicationID) REFERENCES applications(ID),
-    FOREIGN KEY (datasetID) REFERENCES datasets(ID)
+    FOREIGN KEY (dataCollectionID) REFERENCES datacollections(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (machineID) REFERENCES machines(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (applicationID) REFERENCES applications(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (datasetID) REFERENCES datasets(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE executions(
@@ -92,8 +92,8 @@ CREATE TABLE executions(
     trialID int(11),
     PRIMARY KEY (ID),
     INDEX (trialID),
-    FOREIGN KEY (machineID) REFERENCES machines(ID),
-    FOREIGN KEY (trialID) REFERENCES trials(ID)
+    FOREIGN KEY (machineID) REFERENCES machines(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (trialID) REFERENCES trials(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Maps nondeterministic characteristics onto a trial.
@@ -102,8 +102,8 @@ CREATE TABLE nondeterministic_metrics(
     metricID int(11),
     metric real,
     INDEX (executionID),
-    FOREIGN KEY (executionID) REFERENCES executions(ID),
-    FOREIGN KEY (metricID) REFERENCES metrics(ID)
+    FOREIGN KEY (executionID) REFERENCES executions(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (metricID) REFERENCES metrics(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Maps deterministic characteristics onto a dataset. 
@@ -112,7 +112,7 @@ CREATE TABLE deterministic_metrics(
     metricID int(11),
     metric real,
     INDEX (datasetID),
-    FOREIGN KEY (datasetID) REFERENCES datasets(ID),
-    FOREIGN KEY (metricID) REFERENCES metrics(ID)
+    FOREIGN KEY (datasetID) REFERENCES datasets(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (metricID) REFERENCES metrics(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
