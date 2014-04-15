@@ -32,6 +32,11 @@ def run(args):
                                               user=args['user'], 
                                               passwd=args['passwd'],
                                               host=args['host'])
+        if args['dump_csv'] is not None:
+            header = ','.join([met[0] for met in training_DC.metrics])
+            np.savetxt(args['dump_csv'], training_DC.profile, delimiter=',', 
+                       header=header, comments='')
+            return
         if(args['predictor_metrics'] is not None):
             metric_ids = training_DC.metricIndexByName(args['predictor_metrics'])
         else:
@@ -336,6 +341,10 @@ def main():
     parser.add_argument('--predictor-metrics',
                         nargs='*',
                         help='List of metrics to use when building a model.')
+    parser.add_argument('--dump-csv',
+                        nargs='?',
+                        help='Instead of modeling, output the specified data ' 
+                        'collection to the provided filename in csv format.')
 
     """
     EXPERIMENT DATA ARGUMENTS
