@@ -204,6 +204,7 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
     rotated_profile = np.dot(profile, rotation_matrix)
     means = np.mean(rotated_profile, axis=0)
     stdevs = np.std(rotated_profile - means, axis=0, ddof=1)
+    stdevs = np.nan_to_num(stdevs)
     stdevs[stdevs==0.0] = 1.0
     
     clusters = kmeans.predict((rotated_profile - means)/stdevs)
