@@ -46,7 +46,15 @@ def run(args):
         for idx,metric in enumerate(training_DC.metrics):
             if(metric[0] == args['performance_metric']):
                 performance_metric_id = idx
-        training_performance = training_DC.profile[:,performance_metric_id]
+        try:
+            training_performance = training_DC.profile[:,performance_metric_id]
+        except UnboundLocalError:
+            print "Unable to find performance metric '%s', " \
+            "please specify a valid one: " % (args['performance_metric'],)
+            for (my_name,my_desc,my_type) in training_DC.metrics:
+                if my_type == 'result':
+                    print "\t%s" % (my_name,)
+            return
 
         #pca
         training_pca = PCA.PCA(training_profile)
