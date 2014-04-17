@@ -32,6 +32,11 @@ def run(args):
                                               user=args['user'], 
                                               passwd=args['passwd'],
                                               host=args['host'])
+        if args['dump_csv'] is not None:
+            header = ','.join([met[0] for met in training_DC.metrics])
+            np.savetxt(args['dump_csv'], training_DC.profile, delimiter=',', 
+                       header=header, comments='')
+            return
         if(args['predictor_metrics'] is not None):
             metric_ids = training_DC.metricIndexByName(args['predictor_metrics'])
         else:
@@ -46,7 +51,15 @@ def run(args):
         for idx,metric in enumerate(training_DC.metrics):
             if(metric[0] == args['performance_metric']):
                 performance_metric_id = idx
-        training_performance = training_DC.profile[:,performance_metric_id]
+        try:
+            training_performance = training_DC.profile[:,performance_metric_id]
+        except UnboundLocalError:
+            print "Unable to find performance metric '%s', " \
+            "please specify a valid one: " % (args['performance_metric'],)
+            for (my_name,my_desc,my_type) in training_DC.metrics:
+                if my_type == 'result':
+                    print "\t%s" % (my_name,)
+            return
 
         #pca
         training_pca = PCA.PCA(training_profile)
@@ -204,6 +217,7 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
     rotated_profile = np.dot(profile, rotation_matrix)
     means = np.mean(rotated_profile, axis=0)
     stdevs = np.std(rotated_profile - means, axis=0, ddof=1)
+    stdevs = np.nan_to_num(stdevs)
     stdevs[stdevs==0.0] = 1.0
     
     clusters = kmeans.predict((rotated_profile - means)/stdevs)
@@ -327,6 +341,10 @@ def main():
     parser.add_argument('--predictor-metrics',
                         nargs='*',
                         help='List of metrics to use when building a model.')
+    parser.add_argument('--dump-csv',
+                        nargs='?',
+                        help='Instead of modeling, output the specified data ' 
+                        'collection to the provided filename in csv format.')
 
     """
     EXPERIMENT DATA ARGUMENTS
