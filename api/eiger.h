@@ -16,6 +16,7 @@
 
 // STL includes
 #include <vector>
+#include <cassert>
 
 
 ///////////////////////////////////////////////////////////
@@ -100,7 +101,7 @@ namespace eiger{
 // and used as an argument to DERIVED_ID.
 // @param D the name of the corresponding DERIVED_ID type.
 #define COVARIANT_GETID(D) \
-      D getID() { if (ecs == ecs_ok) return D(ID,0); throw #D " requested from uncommited/failed object."; }
+      D getID() { assert((ecs == ecs_ok) && #D " requested from uncommited/failed object."); return D(ID,0); }
 
 DERIVED_ID(ExecutionID);
 DERIVED_ID(MetricID);
@@ -123,7 +124,11 @@ DERIVED_ID(DataCollectionID);
       commit_status ecs;
     public:
       // base of a covariant return in the subclasses to check that ids are used correctly.
-      EigerID getID(){ if (ecs == ecs_ok) return EigerID(ID); throw "EigerIdentifiedClass::getID called on uncommitted/failed object."; }
+      EigerID getID(){ 
+        assert((ecs == ecs_ok) && 
+            "EigerIdentifiedClass::getID called on uncommitted/failed object."); 
+        return EigerID(ID);
+      }
   };
 
   class Metric : public EigerIdentifiedClass {

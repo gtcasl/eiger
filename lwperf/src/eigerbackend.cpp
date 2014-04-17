@@ -6,8 +6,10 @@
 #include "datakind.h"
 #include "eigerbackend.h"
 
-EigerBackend::EigerBackend(std::string sitename, std::string machine, bool append)
-  : sitename_(sitename), dc_(sitename, sitename), app_(sitename, sitename), machine_(machine, machine)
+EigerBackend::EigerBackend(std::string sitename, std::string machine, 
+    std::string application, bool append)
+  : sitename_(sitename), appname_(application), dc_(sitename, sitename), 
+  app_(application, application), machine_(machine, machine)
 {
 		dc_.commit();
     app_.commit();
@@ -16,7 +18,6 @@ EigerBackend::EigerBackend(std::string sitename, std::string machine, bool appen
 
 void EigerBackend::addCol(const std::string& label, const enum datakind kind){
   eiger::metric_type_t etype;
-  std::string slabel = sitename_ + "_"+label;
   switch(kind){
     case RESULT:
       etype = eiger::RESULT;
@@ -30,7 +31,7 @@ void EigerBackend::addCol(const std::string& label, const enum datakind kind){
 		default:
 			throw "eigerbackend: addCol unhandled datakind";
   }
-  eiger::Metric metric(etype, slabel, slabel);
+  eiger::Metric metric(etype, label, label);
   metric.commit();
   erow_.push_back(metric);
 }
@@ -41,13 +42,14 @@ void EigerBackend::nextrow(const std::vector<std::pair<std::string, enum datakin
   // do text since text handles row.clear().
   std::ostringstream dsbuf; 
   std::ostringstream ddbuf; 
-  dsbuf << sitename_;
-  ddbuf << sitename_;
+  dsbuf << appname_;
+  ddbuf << appname_;
   std::vector<std::pair<std::string, enum datakind> >::size_type len = headers.size();
   assert(row.size() == len && 0 != "eigerbackend::nextrow called with incomplete data");
   int i = 0;
   for(std::vector<std::pair<std::string, enum datakind> >::const_iterator it = headers.begin();
       it != headers.end(); ++it, ++i){
+    if(it->second != DETERMINISTIC){ continue; }
     dsbuf << "_" << row.at(i);
     ddbuf << " " << it->first <<  "=" << row.at(i);
   } 
