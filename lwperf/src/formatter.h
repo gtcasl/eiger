@@ -11,10 +11,13 @@
 #include <algorithm>
 #include <map>
 #include <string>
+#include <papi.h>
 
 #include "datakind.h"
 
 namespace {
+const char kEventName[] = "rapl:::PACKAGE_ENERGY:PACKAGE0";
+
 const long kNsecsPerSec = 1000000000;
 double get_elapsed(const timespec& start_time, const timespec& stop_time) {
   double res = 0.0;
@@ -38,6 +41,7 @@ protected:
   std::vector<std::pair<std::string, enum datakind> > headers;
 	std::vector<double> row;
   timespec start_time;
+  int eventset;
 
 public:
   std::map<std::string,double> invariants;
@@ -50,9 +54,31 @@ public:
 	*/
  	formatter(std::string filename, std::string machine, std::string application,
             std::map<std::string,double> invariants, bool append=false)
-    : backend_(filename, machine, application, append), invariants(invariants)
+    : backend_(filename, machine, application, append), invariants(invariants), eventset(PAPI_NULL)
   {
+    int retval;
+    if((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT){
+      std::cerr << "Unable to init PAPI library." << std::endl;
+      exit(-1);
+    }
+    int event_code;
+    retval = PAPI_event_name_to_code((char*) kEventName, &event_code);
+    if(retval != PAPI_OK){
+      PAPI_perror(NULL);
+      exit(-1);
+    }
+    retval = PAPI_create_eventset(&eventset);
+    if(retval != PAPI_OK){
+      PAPI_perror(NULL);
+      exit(-1);
+    }
+    retval = PAPI_add_event(eventset, event_code);
+    if(retval != PAPI_OK){
+      PAPI_perror(NULL);
+      exit(-1);
+    }
     addCol("time", RESULT);
+    addCol(kEventName, RESULT);
     for(std::map<std::string,double>::const_iterator it = invariants.begin();
         it != invariants.end(); ++it){
       addCol(it->first, DETERMINISTIC);
@@ -98,6 +124,11 @@ public:
 	// set a zero time reference
 	void start()
   {
+    int retval = PAPI_start(eventset);
+    if(retval != PAPI_OK){
+      PAPI_perror(NULL);
+      exit(-1);
+    }
     double res = clock_gettime(CLOCK_MONOTONIC, &start_time);
     if(res != 0){
       std::cerr << "Unable to get current time." << std::endl;
@@ -109,8 +140,17 @@ public:
   {
     timespec stop_time;
     clock_gettime(CLOCK_MONOTONIC, &stop_time);
-    double elapsed = get_elapsed(start_time, stop_time);
-    put(elapsed);
+    double elapsed_time = get_elapsed(start_time, stop_time);
+
+    long long elapsed_energy;
+    int retval = PAPI_stop(eventset, &elapsed_energy);
+    if(retval != PAPI_OK){
+      PAPI_perror(NULL);
+      exit(-1);
+    }
+
+    put(elapsed_time);
+    put(elapsed_energy * (double) 1e-9);
     for(std::map<std::string,double>::const_iterator it = invariants.begin();
         it != invariants.end(); ++it){
       put(it->second);
