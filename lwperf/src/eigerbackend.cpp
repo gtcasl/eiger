@@ -18,7 +18,6 @@ EigerBackend::EigerBackend(std::string sitename, std::string machine,
 
 void EigerBackend::addCol(const std::string& label, const enum datakind kind){
   eiger::metric_type_t etype;
-  std::string slabel = sitename_ + "_"+label;
   switch(kind){
     case RESULT:
       etype = eiger::RESULT;
@@ -32,7 +31,7 @@ void EigerBackend::addCol(const std::string& label, const enum datakind kind){
 		default:
 			throw "eigerbackend: addCol unhandled datakind";
   }
-  eiger::Metric metric(etype, slabel, slabel);
+  eiger::Metric metric(etype, label, label);
   metric.commit();
   erow_.push_back(metric);
 }
