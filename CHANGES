@@ -1,0 +1,6 @@
+Version 2.1
+-----------
+This version adds support for PAPI hardware performance counters within lwperf.
+Using PAPI allows for collecting data to generate models of arbitrary hardware
+counters in addition to time, such as power or energy. To use, ensure that
+USE_PAPI is defined in the preprocessor before including lwperf.h.
