@@ -1,3 +1,16 @@
+Version 3.0
+-----------
+This version is backwards-incompatible with previous releases of Eiger, due to
+the following changes:
+    * Move from MySQL to sqlite3 as database host. There is a script
+      facilitating the conversion of existing MySQL databases to sqlite3
+      database files in the database folder.
+    * Removal of 'result' metric types. All nondeterministic metrics are
+      considered dependent upon the exact execution of an application on a
+      specific machine. Therefore artifacts such as execution time, previously
+      catagorized specially as 'result' metrics, are just another
+      nondeterministic metric.
+
 Version 2.1
 -----------
 This version adds support for PAPI hardware performance counters within lwperf.

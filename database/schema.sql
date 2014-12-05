@@ -2,117 +2,117 @@
 -- Eiger database schema
 -- 
 
-DROP TABLE IF EXISTS 
-deterministic_metrics,
-nondeterministic_metrics,
-executions,
-trials, 
-machine_metrics,
-metrics, 
-machines, 
-datasets, 
-applications, 
-datacollections;
-
+DROP TABLE IF EXISTS deterministic_metrics;
+DROP TABLE IF EXISTS nondeterministic_metrics;
+DROP TABLE IF EXISTS executions;
+DROP TABLE IF EXISTS trials;
+DROP TABLE IF EXISTS machine_metrics;
+DROP TABLE IF EXISTS metric_types;
+DROP TABLE IF EXISTS metrics;
+DROP TABLE IF EXISTS machines;
+DROP TABLE IF EXISTS datasets;
+DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS datacollections;
 
 --
 -- Tables to maintain a data collection
 --
 CREATE TABLE datacollections(
-    ID int(11) auto_increment not null,
-    name varchar(256),
-    description text,
-    created datetime,
-    UNIQUE(name),
-    PRIMARY KEY(ID)
+    ID INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    description TEXT,
+    created TEXT
 );
 
 CREATE TABLE applications(
-    ID int(11) auto_increment not null,
-    name varchar(256) not null,
-    description text,
-    UNIQUE(name),
-    PRIMARY KEY(ID)
+    ID INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    description TEXT
 );
 
 CREATE TABLE datasets(
-    ID int(11) auto_increment not null,
-    applicationID int(11),
-    name varchar(256) not null,
-    description text,
-    created DATETIME,
-    url text,
-    UNIQUE(name),
-    PRIMARY KEY (ID),
-    FOREIGN KEY (applicationID) REFERENCES applications(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    ID INTEGER PRIMARY KEY,
+    applicationID INTEGER REFERENCES applications(ID) 
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    name TEXT UNIQUE,
+    description TEXT,
+    created TEXT,
+    url TEXT
 );
 
 CREATE TABLE machines(
-    ID int(11) auto_increment not null,
-    name varchar(256) not null,
-    description text,
-    UNIQUE(name),
-    PRIMARY KEY (ID)
+    ID INTEGER PRIMARY KEY,
+    name TEXT UNIQUE,
+    description TEXT
 );
 
+CREATE TABLE metric_types(
+    type TEXT PRIMARY KEY,
+    seq INTEGER
+);
+
+INSERT INTO metric_types(type, seq) VALUES ('deterministic', 1);
+INSERT INTO metric_types(type, seq) VALUES ('nondeterministic', 2);
+INSERT INTO metric_types(type, seq) VALUES ('machine', 3);
+
 CREATE TABLE metrics(
-    ID int(11) auto_increment not null,
-    type enum('result', 'deterministic', 'nondeterministic', 'machine', 'other'),
-    name varchar(256) not null,
-    description text,
-    UNIQUE(name),
-    PRIMARY KEY (ID)
+    ID INTEGER PRIMARY KEY,
+    type TEXT REFERENCES metric_types(type),
+    name TEXT UNIQUE,
+    description TEXT
 );
 
 CREATE TABLE machine_metrics(
-    machineID int(11),
-    metricID int(11),
-    metric real,
-    FOREIGN KEY (machineID) REFERENCES machines(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (metricID) REFERENCES metrics(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    machineID INTEGER REFERENCES machines(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    metricID INTEGER REFERENCES metrics(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    metric REAL
 );
 
 CREATE TABLE trials(
-    ID int(11) auto_increment not null,
-    dataCollectionID int(11),
-    machineID int(11),
-    applicationID int(11),
-    datasetID int(11),
-    PRIMARY KEY (ID),
-    INDEX (datasetID),
-    FOREIGN KEY (dataCollectionID) REFERENCES datacollections(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (machineID) REFERENCES machines(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (applicationID) REFERENCES applications(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (datasetID) REFERENCES datasets(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    ID INTEGER PRIMARY KEY,
+    dataCollectionID INTEGER REFERENCES datacollections(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    machineID INTEGER REFERENCES machines(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    applicationID INTEGER REFERENCES applications(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    datasetID INTEGER REFERENCES datasets(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX trial_dset_idx ON trials(datasetID);
+
 CREATE TABLE executions(
-    ID int(11) auto_increment not null,
-    machineID int(11),
-    trialID int(11),
-    PRIMARY KEY (ID),
-    INDEX (trialID),
-    FOREIGN KEY (machineID) REFERENCES machines(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (trialID) REFERENCES trials(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    ID INTEGER PRIMARY KEY,
+    machineID INTEGER REFERENCES machines(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    trialID INTEGER REFERENCES trials(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
 );
+
+CREATE INDEX executions_trial_idx ON executions(trialID);
 
 -- Maps nondeterministic characteristics onto a trial.
 CREATE TABLE nondeterministic_metrics(
-    executionID int(11),
-    metricID int(11),
-    metric real,
-    INDEX (executionID),
-    FOREIGN KEY (executionID) REFERENCES executions(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (metricID) REFERENCES metrics(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    executionID INTEGER REFERENCES executions(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    metricID INTEGER REFERENCES metrics(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    metric REAL
 );
+
+CREATE INDEX ndet_metrics_execution_idx ON nondeterministic_metrics(executionID);
 
 -- Maps deterministic characteristics onto a dataset. 
 CREATE TABLE deterministic_metrics(
-    datasetID int(11),
-    metricID int(11),
-    metric real,
-    INDEX (datasetID),
-    FOREIGN KEY (datasetID) REFERENCES datasets(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (metricID) REFERENCES metrics(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    datasetID INTEGER REFERENCES datasets(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    metricID INTEGER REFERENCES metrics(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    metric REAL
 );
+
+CREATE INDEX det_metrics_dset_idx ON deterministic_metrics(datasetID);
 

@@ -35,10 +35,7 @@ namespace eiger{
 
   std::string getErrorString(error_t error);
 
-  void Connect(std::string databaseLocation,
-               std::string databaseName,
-               std::string username,
-               std::string password);
+  void Connect(std::string database);
 
   void Disconnect();
 
@@ -50,11 +47,7 @@ namespace eiger{
   class DataCollection;
   class Application;
 
-  enum metric_type_t{ RESULT,
-                      DETERMINISTIC,
-                      NONDETERMINISTIC,
-                      MACHINE,
-                      OTHER};
+  enum metric_type_t { DETERMINISTIC, NONDETERMINISTIC, MACHINE };
 
   class EigerClass {
     protected:

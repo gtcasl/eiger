@@ -11,7 +11,7 @@ performance modeling framework. More details can be found in the documentation f
 FOLDER LAYOUT
 =============
 ./api			- The Eiger C++ API
-./database		- MySQL schema for Eiger database
+./database		- sqlite3 schema for Eiger database
 ./documentation - Documentation describing the implementation of Eiger
 ./eiger			- Eiger performance modeling framework
 ./lwperf		- Sandia's Fortran and C/C++ macro interface for common profiling tasks
@@ -43,18 +43,10 @@ can be found in the ./examples folder.
 =============
 DATABASE SETUP
 =============
-The Eiger modeling framework relies upon a MySQL relational database to manage metric
-storage, model construction, and model serialization. Read and write access must be
-available for a database server, although there is no limitation as to the location
-of the database (ie remote vs. local). To initialize a new database, open a MySQL
-client and enter the following commands:
-
-mysql> CREATE DATABASE MyEigerDatabase; 
-mysql> USE MyEigerDatabase;
-mysql> SOURCE /path/to/eiger/database/schema.sql;
-
-At this point the database named 'MyEigerDatabase' now contains all necessary tables
-used by Eiger.
+The Eiger modeling framework relies upon a sqlite3 relational database to manage
+metric storage, model construction, and model serialization. All data used by
+sqlite3 is contained in a single database file. If a filename is provided which
+has not been used for storing Eiger data, it will be converted into one.
 
 =============
 API INSTALLATION

@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 
 // Eiger includes
 #include "fakekeywords.h"
@@ -23,8 +24,7 @@ using std::vector;
 
 namespace eiger{
 
-  void do_disconnect(const string& dbloc, const string& dbname, 
-                     const string& user, const string& passwd,
+  void do_disconnect(const string& db, 
                      const vector<DataCollection>& datacollections,
                      const vector<Application>& applications,
                      const vector<Dataset>& datasets,
@@ -46,10 +46,7 @@ namespace eiger{
   /********
    * Static vars
    */
-  static std::string dbloc;
-  static std::string dbname;
-  static std::string user;
-  static std::string passwd;
+  static std::string db;
   static vector<DataCollection> datacollections;
   static vector<Application> applications;
   static vector<Dataset> datasets;
@@ -96,24 +93,15 @@ namespace eiger{
 
 	}
 
-	void Connect(std::string databaseLocation,
-			std::string databaseName,
-			std::string username,
-			std::string password) {
-    dbloc = databaseLocation;
-    dbname = databaseName;
-    user = username;
-    passwd = password;
+	void Connect(std::string database){
+    db = database;
 	}
 
 	void Disconnect(){
-    do_disconnect(dbloc, dbname, user, passwd, datacollections, applications,
+    do_disconnect(db, datacollections, applications,
                   datasets, machines, trials, executions, metrics,
                   nondet_metrics, det_metrics, machine_metrics);
-    dbloc.clear();
-    dbname.clear();
-    user.clear();
-    passwd.clear();
+    db.clear();
     datacollections.clear();
     applications.clear();
     datasets.clear();
@@ -249,9 +237,6 @@ namespace eiger{
 
 		std::string type_name;
 		switch(this->type){
-			case RESULT:
-				type_name = "result";
-				break;
 			case DETERMINISTIC:
 				type_name = "deterministic";
 				break;
@@ -261,9 +246,8 @@ namespace eiger{
 			case MACHINE:
 				type_name = "machine";
 				break;
-			case OTHER:
-				type_name = "other";
-				break;
+      default:
+        assert(0 && "Must have correct metric type.");
 		}
 		str << METRIC_COMMIT << ";" << type_name << ";" << name << ";" 
         << description << ";" << ID;

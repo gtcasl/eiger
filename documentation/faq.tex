@@ -74,3 +74,12 @@ consumption by SST/macro:
 	\texttt{Eiger.py <other flags> -o}
 	\end{quote}
 
+\paragraph{Question}
+How do I convert my MySQL database from Eiger v2 to a sqlite3 database file?
+\paragraph{Answer}
+The \texttt{mysql2sqlite.sh} script in the \texttt{database} folder can be used to dump out the contents of a MySQL database in the correct format. For example:
+
+    \begin{quote}
+    \texttt{./database/mysql2sqlite.sh -u <username> -p<password> dbname > <sqlite filename>}
+    \end{quote}
+

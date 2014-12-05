@@ -23,12 +23,6 @@ A Trial serves as a unifying structure under which all
 Metrics are contained, including those from the Machine, the Application, and
 the performance metric.
 
-\item[Execution] An execution represents the individual instrumentation tools used
-to collect metrics from a single Trial. The union of Metrics from all of a
-Trial's Executions comprize the entire set of Metrics that describe that Trial.
-This allows for running several different tools (emulator, simulator, etc) to
-collect metrics that will all go together to describe a Trial.
-
 \item[Application] An Application is a program run to collect training data. It can
 be a full application, a kernel, or a microbenchmark.  Several different input
 Datasets can be run through the same Application, i.e. different sized input
@@ -47,14 +41,12 @@ Applications that run on the same hardware.
 \item[Metric] A Metric describes a measurable quantity of the system. 
 There are several types of Metrics:
 	\begin{description}
-	\item[result] Performance metric the model will try to predict.  Runtime,
-		energy use, etc.
 	\item[deterministic] Any value that is invariant across executions of a
 		particular execution. Static instruction counts, input 
 		data size, etc.
 	\item[nondeterministic] Values that may change from execution to execution.
-		This includes measures such as dynamic instruction counts, cache miss
-		rates, etc.
+        This includes measures such as execution time, dynamic instruction
+        counts, cache miss rates, etc.
 	\item[machine] Values that pertain only to the Machine an Application is run
 		on. Memory capacity, clock speeds, etc.
 	\item[other] Miscellanea. 
@@ -74,14 +66,10 @@ type.
 \end{description}
 
 \subsection{Internal Data Store}
-By design the API abstracts away the requirement for any particular
-database technology, although at this time this interface is only
-implemented for the MySQL database. There is a table for each of the major
-classes, as well as extra tables used for model serialization. Eiger does
-not require that the database be stored locally; rather, the API provides a
-way to indicate the IP address or hostname of the machine, allowing for
-nonlocal data storage.  Further details can be found in the API
-documentation in Section \ref{sec:api}. The schema describing the database is in
+By design the API abstracts away the requirement for any particular database
+technology, although at this time this interface is only implemented for the
+sqlite3 database. Further details can be found in the API documentation in
+Section \ref{sec:api}. The schema describing the database is in
 \texttt{eiger/database/schema.sql}. 
 
 \subsection{Model File Format}
