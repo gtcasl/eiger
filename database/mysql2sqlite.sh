@@ -161,5 +161,15 @@ aInc == 1 && /PRIMARY KEY/ {
 END {
     for (table in key) printf key[table]
 }
-'
+' | sed -e '/type/ s/$/ REFERENCES metric_types(type)/' | sed -e 's/result/nondeterministic/'
+echo "
+CREATE TABLE metric_types(
+    type TEXT PRIMARY KEY,
+    seq INTEGER
+);
+INSERT INTO metric_types(type, seq) VALUES ('deterministic', 1);
+INSERT INTO metric_types(type, seq) VALUES ('nondeterministic', 2);
+INSERT INTO metric_types(type, seq) VALUES ('machine', 3);
+END TRANSACTION;
+"
 exit 0

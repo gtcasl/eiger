@@ -4,7 +4,6 @@
 
 DROP TABLE IF EXISTS deterministic_metrics;
 DROP TABLE IF EXISTS nondeterministic_metrics;
-DROP TABLE IF EXISTS executions;
 DROP TABLE IF EXISTS trials;
 DROP TABLE IF EXISTS machine_metrics;
 DROP TABLE IF EXISTS metric_types;
@@ -84,26 +83,16 @@ CREATE TABLE trials(
 
 CREATE INDEX trial_dset_idx ON trials(datasetID);
 
-CREATE TABLE executions(
-    ID INTEGER PRIMARY KEY,
-    machineID INTEGER REFERENCES machines(ID)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    trialID INTEGER REFERENCES trials(ID)
-        ON DELETE CASCADE ON UPDATE CASCADE,
-);
-
-CREATE INDEX executions_trial_idx ON executions(trialID);
-
 -- Maps nondeterministic characteristics onto a trial.
 CREATE TABLE nondeterministic_metrics(
-    executionID INTEGER REFERENCES executions(ID)
+    trialID INTEGER REFERENCES trials(ID)
         ON DELETE CASCADE ON UPDATE CASCADE,
     metricID INTEGER REFERENCES metrics(ID)
         ON DELETE CASCADE ON UPDATE CASCADE,
     metric REAL
 );
 
-CREATE INDEX ndet_metrics_execution_idx ON nondeterministic_metrics(executionID);
+CREATE INDEX ndet_metrics_trial_idx ON nondeterministic_metrics(trialID);
 
 -- Maps deterministic characteristics onto a dataset. 
 CREATE TABLE deterministic_metrics(
