@@ -48,10 +48,10 @@ The backends can also generate text to the screen (in csv format) if the screen 
 \subsection{Dependencies}
 \begin{itemize}
 \item[Eiger] The collectors depend on libmpieiger or libmpifakeeiger if -D\_USE\_EIGER is applied. Eiger is not needed if only CSV collection is used.
-\item[MPI] From MPI, the collectors use only MPI\_Wtime. This may be easily replaced with boost or any other available and acceptable high resolution clock difference. The MPI compiler wrappers are used because of this dependency.
 \item[C++] STL classes and variadic macro support.
 \item[Fortran] Basic macro substitution and the bind(c) feature, which is available in gfortran and most other fortrans as of 2011. Formally, bind(c) is part of the Fortran 2003 specification. Variadic macro support is not required for the Fortran binding.
-\item[C] Variadic macro support
+\item[C] Variadic macro support.
+\item[PAPI] \textit{OPTIONAL} The PAPI interface is used to collect hardware performance counters. This is disabled by default.
 \end{itemize}
 
 \section{C++ Application Programming Interface}
@@ -108,9 +108,8 @@ There are several different parameter macros, as listed in the following table.
 
 Analogous to PERFLOG/PERFSTOP are the macros PERFLOGKEEP/PERFSTOPKEEP. They function the same way as PERFLOG/PERFSTOP except with regards to skeletonization; use they macros whenever the metrics being instrumented are data-dependent, in the sense that they only have valid values as long as the actual computation is performed. When the -D\_USE\_EIGER\_MODEL flag is set, the sections of code in between calls to PERFLOGKEEP and PERFSTOPKEEP will \textit{not} be removed.
 
-\subsection{Performance counters}
-The performance measures captured are defined in csvformatter.h:DEFAULT\_PERFCTRS, with supporting definitions and computations required for each in the private data of csvformatter and the start/stop member functions. These are easily extended by the demanding user. At present, support for hardware performance counters is not included as it would add considerable dependency and portability problems. The enterprising user may tailor lwperf to collect hardware counters.
-
+\subsection{Hardware Performance Counters}
+Hardware performance counters may be collected in addition to the system clock time and used as nondeterministic metrics. lwperf uses the PAPI interface for collecting hardware performance counters, support for which is turned off by default. To use, make sure that \texttt{USE\_PAPI} is defined in the preprocessor, either setting the preprocessor flag \texttt{-DUSE\_PAPI} during compilation or by placing \texttt{#define USE\_PAPI} before including the \texttt{lwperf.h} header.
 
 \section{Building}
 Being lightweight by design, this tool is intended to be used by incorporation into the investigated application and its build processes rather than as an independent library.  In order to keep performance impact to minimum without introducing a proprietary compiler, some simple portions of the support classes must be generated based on a scan of the sites defined in the application code. This scan is performed and the generated code is updated by the simple utility {\em updateLoggersCXX.sh}. This utility takes the file names to parse as parameters.

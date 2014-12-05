@@ -63,8 +63,8 @@ elsewhere.
 At least under Ubuntu 11.10, the system-provided libmysqlpp.so is defective and specifying libmysqlpp.a is necessary. Building with intel compilers requires mpi and mysqlpp libraries built
 with the intel c++ compiler.
 
-* Timing
-Lwperf uses MPI_Wtime() as its method for collecting current execution time.
-This means that it relies upon the linked version of mpi to correctly determine
-what "execution time" really means, which can be used to track things such as
-emulated execution time, when using an mpi emulator such as sstmacro.
+* Papi: Hardware Performance Counters:
+This build supports the collection of PAPI hardware performance counters during
+execution in addition to excution time. This allows for the creation of other
+performance metrics, such as power or energy. The preprocessor flag USE_PAPI
+must be defined before lwperf is included to make sure it works.

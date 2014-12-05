@@ -11,7 +11,10 @@
 #include <algorithm>
 #include <map>
 #include <string>
+
+#ifdef USE_PAPI
 #include <papi.h>
+#endif
 
 #include "datakind.h"
 
@@ -54,8 +57,12 @@ public:
 	*/
  	formatter(std::string filename, std::string machine, std::string application,
             std::map<std::string,double> invariants, bool append=false)
-    : backend_(filename, machine, application, append), invariants(invariants), eventset(PAPI_NULL)
+    : backend_(filename, machine, application, append), invariants(invariants)
+#ifdef USE_PAPI
+    , eventset(PAPI_NULL)
+#endif
   {
+#ifdef USE_PAPI
     int retval;
     if((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT){
       std::cerr << "Unable to init PAPI library." << std::endl;
@@ -77,8 +84,14 @@ public:
       PAPI_perror(NULL);
       exit(-1);
     }
+#endif
+
     addCol("time", RESULT);
+
+#ifdef USE_PAPI
     addCol(kEventName, RESULT);
+#endif
+
     for(std::map<std::string,double>::const_iterator it = invariants.begin();
         it != invariants.end(); ++it){
       addCol(it->first, DETERMINISTIC);
@@ -124,11 +137,13 @@ public:
 	// set a zero time reference
 	void start()
   {
+#ifdef USE_PAPI
     int retval = PAPI_start(eventset);
     if(retval != PAPI_OK){
       PAPI_perror(NULL);
       exit(-1);
     }
+#endif
     double res = clock_gettime(CLOCK_MONOTONIC, &start_time);
     if(res != 0){
       std::cerr << "Unable to get current time." << std::endl;
@@ -142,15 +157,21 @@ public:
     clock_gettime(CLOCK_MONOTONIC, &stop_time);
     double elapsed_time = get_elapsed(start_time, stop_time);
 
+#ifdef USE_PAPI
     long long elapsed_energy;
     int retval = PAPI_stop(eventset, &elapsed_energy);
     if(retval != PAPI_OK){
       PAPI_perror(NULL);
       exit(-1);
     }
+#endif
 
     put(elapsed_time);
+
+#ifdef USE_PAPI
     put(elapsed_energy * (double) 1e-9);
+#endif
+
     for(std::map<std::string,double>::const_iterator it = invariants.begin();
         it != invariants.end(); ++it){
       put(it->second);
