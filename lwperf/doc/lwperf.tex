@@ -63,11 +63,13 @@ After lwperf.h is included in the driver and all files where collection is neede
 
 From application driver cxxapp.cpp:
 \begin{verbatim}
-  PERFDECL(PERF::init("intel i7",""cxxapp.cpp","cxxapp","tesla.",".log");)
+  PERFINIT("intel i7",""cxxapp.cpp","cxxapp","tesla.",".log")
   // collect communicator rank and size : profiling a single-node job using
-  PERFDECL(PERF::mpiArgs(me,csize);)
+  PERFMPIARGS(me,csize)
+  // Do the actual work, then
+  PERFFINALIZE
 \end{verbatim}
-Here all the initialization calls are wrapped in PERFDECL, a macro that deletes the calls if the profiler is not enabled by one of the USE flags. Unlike many tools, performance collection sites can be disabled on a per-file basis by eliminating from the compiler arguments the -D\_USE\_(CSV|EIGER) flag. On the driver and all files where collection is enabled, the same flag (EIGER or CSV) must be used; mixing is not allowed. 
+Unlike many tools, performance collection sites can be disabled on a per-file basis by eliminating from the compiler arguments the -D\_USE\_(CSV|EIGER) flag. On the driver and all files where collection is enabled, the same flag (EIGER or CSV) must be used; mixing is not allowed. 
 
 \subsection{Profile sites}
 At any site (usually a loop nest) where data collection is wanted, the collection point is defined at the beginning of the site with a unique name and additional log names for parameters characterizing the work load (usually integer). The values of the parameters do not need to be available at the beginning of the site; only names are needed. The name given the site must be unique across the entire application. The parameter names are specific to the site and may be reused elsewhere.

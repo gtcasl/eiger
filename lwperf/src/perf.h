@@ -107,6 +107,15 @@ public:
 // what is its internal logger class
 #define PERFFORMATTER formatter<PERFBACKEND>
 
+// Initialize the logging
+#define PERFINIT(m,a,d,p,s) PERF::init(m,a,d,p,s);
+
+// Finalize the logging
+#define PERFFINALIZE PERF::finalize();
+
+// Set MPI args
+#define PERFMPIARGS(r,s) PERF::mpiArgs(r,s);
+
 #ifdef _USE_EIGER_MODEL
 #define MODELCALL(X,...) \
   {std::map<std::string, double> eigerparams; \

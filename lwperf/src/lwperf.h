@@ -5,14 +5,17 @@
 #error "this file is for inclusion in C++ sources only"
 #endif
 
-#if !defined(PERF_DISABLE) || defined(_USE_EIGER) || defined(_USE_CSV) || \
-    defined(_USE_EIGER_MODEL) || defined(_USE_FAKEEIGER)
+#if defined(_USE_EIGER) || defined(_USE_CSV) || defined(_USE_EIGER_MODEL) || \
+    defined(_USE_FAKEEIGER)
 
 #include "perf.h"
 
 #else // PERF_DISABLE is set
 #define PERF ErRoR
 #define PERFFORMATTER NO_LWPERF_ENABLED
+#define PERFINIT
+#define PERFFINALIZE
+#define PERFMPIARGS
 #define PERFDECL(...)
 #define PERFLOG(X, ...)
 #define PERFLOGKEEP(X, ...)
