@@ -72,12 +72,3 @@ sqlite3 database. Further details can be found in the API documentation in
 Section \ref{sec:api}. The schema describing the database is in
 \texttt{eiger/database/schema.sql}. 
 
-\subsection{Model File Format}
-For integration with the SST/macro simulator, Eiger can serialize its
-performance models to files. Each file is formatted so that it can be read
-by the appropriate module within SST/macro, however there is nothing
-inherent to this format that prevents it from being used by different
-sources. More details on the exact file format can be found in
-\texttt{eiger/PerformanceModel.py} under the \texttt{toFile()} function. 
-See the FAQ in Section \ref{sec:faq}
-for details on exporting performance models.
