@@ -1,6 +1,0 @@
-Add in timer so we can handle overflow.
-    Necessary? Are any compute regions greater than ~60 secs?
-    Would need to set up and tear down per region. Maybe just print out a
-    warning if the end time is greater than some threshold, indicating that it
-    should be re-run with overflow handling turned on.
-        Add a compilation flag that turns on overflow handling.

@@ -15,6 +15,7 @@ the following changes:
       distinction is a function of the application code, not of the database,
       and is being removed for clarity. Any merging of separate sources will
       need to be handled on an application basis.
+    * lwperf has moved to its own repository: github.com/gtcasl/lwperf
 
 Version 2.1
 -----------
