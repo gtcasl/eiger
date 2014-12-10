@@ -5,6 +5,11 @@ July 5, 2011
 
 This contains a set of test data gathered to demonstrate various aspects of the system.
 
+./energy-tutorial
+
+    Walkthrough of creating and using Eiger models with lwperf's PAPI support
+    for the HPCCG mini-app.
+
 ./synthetic-gpgpu3
 
 	Synthetic data used to demonstrate basic functionality in GPGPU3 paper.
