@@ -35,9 +35,6 @@ enum dispatch {
   Machine_commit,
   Trial,
   Trial_commit,
-  Execution,
-  Execution_commit,
-
   MachineMetric,
   MachineMetric_commit,
   DeterministicMetric,
@@ -108,7 +105,6 @@ void one(std::string s) {
   case Dataset:
   case Machine:
   case Trial:
-  case Execution:
   case MachineMetric:
   case DeterministicMetric:
   case NondeterministicMetric:
@@ -139,13 +135,6 @@ void one(std::string s) {
       eiger::Trial(dci,mi,ai,dsi).commit();
     }
     break;
-  case Execution_commit:
-    {
-      eiger::TrialID ti(toInt(v[1]),0);
-      eiger::MachineID mi(toInt(v[2]),0); 
-      eiger::Execution(ti, mi).commit();
-    }
-    break;
   case MachineMetric_commit:
     {
       eiger::MachineID mai(toInt(v[1]),0);
@@ -162,9 +151,9 @@ void one(std::string s) {
     break;
   case NondeterministicMetric_commit:
     {
-      eiger::ExecutionID ei(toInt(v[1]),0);
+      eiger::TrialID ti(toInt(v[1]),0);
       eiger::MetricID mi(toInt(v[2]),0);
-      eiger::NondeterministicMetric(ei,mi,toDouble(v[3])).commit();
+      eiger::NondeterministicMetric(ti,mi,toDouble(v[3])).commit();
     }
     break;
   case Metric_commit:
@@ -210,8 +199,6 @@ void initmaps() {
   domap[FEMACHINE] =Machine;
   domap[TRIAL_COMMIT] =Trial_commit;
   domap[TRIAL] =Trial;
-  domap[EXECUTION_COMMIT]=Execution_commit;
-  domap[EXECUTION]=Execution;
   domap[MACHINEMETRIC_COMMIT]=MachineMetric_commit;
   domap[MACHINEMETRIC]=MachineMetric;
   domap[DETERMINISTICMETRIC_COMMIT]=DeterministicMetric_commit;

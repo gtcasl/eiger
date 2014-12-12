@@ -21,7 +21,6 @@ void do_disconnect(const string& dbloc, const string& dbname,
                    const vector<Dataset>& datasets,
                    const vector<Machine>& machines,
                    const vector<Trial>& trials,
-                   const vector<Execution>& executions,
                    const vector<Metric>& metrics,
                    const vector<NondeterministicMetric>& nondet_metrics,
                    const vector<DeterministicMetric>& det_metrics,
@@ -48,8 +47,6 @@ void do_disconnect(const string& dbloc, const string& dbname,
             std::ostream_iterator<Machine>(fake_log, "\n"));
   std::copy(trials.begin(), trials.end(),
             std::ostream_iterator<Trial>(fake_log, "\n"));
-  std::copy(executions.begin(), executions.end(),
-            std::ostream_iterator<Execution>(fake_log, "\n"));
   std::copy(metrics.begin(), metrics.end(),
             std::ostream_iterator<Metric>(fake_log, "\n"));
   std::copy(nondet_metrics.begin(), nondet_metrics.end(),

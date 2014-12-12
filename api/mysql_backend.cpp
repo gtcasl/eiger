@@ -17,9 +17,6 @@ sql_create_4(trials, 4, 0,
              mysqlpp::sql_int, machineID,
              mysqlpp::sql_int, applicationID,
              mysqlpp::sql_int, datasetID);
-sql_create_2(executions, 2, 0, 
-             mysqlpp::sql_int, machineID,
-             mysqlpp::sql_int, trialID);
 sql_create_2(machines, 2, 0, 
              mysqlpp::sql_varchar, name,
              mysqlpp::sql_text, description);
@@ -40,7 +37,7 @@ sql_create_3(metrics, 3, 0,
              mysqlpp::sql_varchar, name,
              mysqlpp::sql_text, description);
 sql_create_3(nondeterministic_metrics, 3, 0,
-             mysqlpp::sql_int, executionID,
+             mysqlpp::sql_int, trialID,
              mysqlpp::sql_int, metricID,
              mysqlpp::sql_double, metric);
 sql_create_3(deterministic_metrics, 3, 0,
@@ -124,7 +121,6 @@ void do_disconnect(const string& dbloc, const string& dbname,
                    const vector<Dataset>& datasets_e,
                    const vector<Machine>& machines_e,
                    const vector<Trial>& trials_e,
-                   const vector<Execution>& executions_e,
                    const vector<Metric>& metrics_e,
                    const vector<NondeterministicMetric>& nondet_metrics_e,
                    const vector<DeterministicMetric>& det_metrics_e,
@@ -132,7 +128,6 @@ void do_disconnect(const string& dbloc, const string& dbname,
 #define MAKEROWVEC(X) vector<X> X##_rows;
   MAKEROWVEC(datacollections)
   MAKEROWVEC(trials)
-  MAKEROWVEC(executions)
   MAKEROWVEC(machines)
   MAKEROWVEC(machine_metrics)
   MAKEROWVEC(applications)
@@ -162,10 +157,6 @@ void do_disconnect(const string& dbloc, const string& dbname,
     trials_rows.push_back(trials(it->dataCollectionID, it->machineID, 
                                  it->applicationID, it->datasetID));
   }
-  for(vector<Execution>::const_iterator it = executions_e.begin();
-      it != executions_e.end(); ++it){
-    executions_rows.push_back(executions(it->machineID, it->trialID));
-  }
   for(vector<Metric>::const_iterator it = metrics_e.begin();
       it != metrics_e.end(); ++it){
 		std::string type_name;
@@ -190,7 +181,7 @@ void do_disconnect(const string& dbloc, const string& dbname,
   }
   for(vector<NondeterministicMetric>::const_iterator it = nondet_metrics_e.begin();
       it != nondet_metrics_e.end(); ++it){
-    nondeterministic_metrics_rows.push_back(nondeterministic_metrics(it->executionID, 
+    nondeterministic_metrics_rows.push_back(nondeterministic_metrics(it->trialID, 
                                                                      it->metricID, 
                                                                      it->value));
   }
@@ -245,18 +236,9 @@ void do_disconnect(const string& dbloc, const string& dbname,
     vector<int> trial_ids = insertAndIDByInsertID(trials_rows.begin(), 
                                                   trials_rows.end(), query);
     
-    for(vector<executions>::iterator it = executions_rows.begin(); 
-        it != executions_rows.end(); ++it){
-      it->machineID = machine_ids[it->machineID];
-      it->trialID = trial_ids[it->trialID];
-    }
-    vector<int> execution_ids = insertAndIDByInsertID(executions_rows.begin(), 
-                                                      executions_rows.end(), 
-                                                      query);
-
     for(vector<nondeterministic_metrics>::iterator it = nondeterministic_metrics_rows.begin(); 
         it != nondeterministic_metrics_rows.end(); ++it){
-      it->executionID = execution_ids[it->executionID];
+      it->trialID = trial_ids[it->trialID];
       it->metricID = metric_ids[it->metricID];
     }
     insertAll(nondeterministic_metrics_rows.begin(), 

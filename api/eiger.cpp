@@ -30,7 +30,6 @@ namespace eiger{
                      const vector<Dataset>& datasets,
                      const vector<Machine>& machines,
                      const vector<Trial>& trials,
-                     const vector<Execution>& executions,
                      const vector<Metric>& metrics,
                      const vector<NondeterministicMetric>& nondet_metrics,
                      const vector<DeterministicMetric>& det_metrics,
@@ -52,7 +51,6 @@ namespace eiger{
   static vector<Dataset> datasets;
   static vector<Machine> machines;
   static vector<Trial> trials;
-  static vector<Execution> executions;
   static vector<Metric> metrics;
   static vector<NondeterministicMetric> nondet_metrics;
   static vector<DeterministicMetric> det_metrics;
@@ -99,7 +97,7 @@ namespace eiger{
 
 	void Disconnect(){
     do_disconnect(db, datacollections, applications,
-                  datasets, machines, trials, executions, metrics,
+                  datasets, machines, trials, metrics,
                   nondet_metrics, det_metrics, machine_metrics);
     db.clear();
     datacollections.clear();
@@ -107,7 +105,6 @@ namespace eiger{
     datasets.clear();
     machines.clear();
     trials.clear();
-    executions.clear();
     metrics.clear();
     nondet_metrics.clear();
     det_metrics.clear();
@@ -131,7 +128,7 @@ namespace eiger{
     ecs = ecs_ok;
 	}
 
-	NondeterministicMetric::NondeterministicMetric(ExecutionID executionID, MetricID metricID, double value) :  executionID(executionID), metricID(metricID), value(value) {}
+	NondeterministicMetric::NondeterministicMetric(TrialID trialID, MetricID metricID, double value) :  trialID(trialID), metricID(metricID), value(value) {}
 
 	void NondeterministicMetric::commit() {
     nondet_metrics.push_back(*this);
@@ -147,14 +144,6 @@ namespace eiger{
 
 	void MachineMetric::commit() {
     machine_metrics.push_back(*this);
-	}
-
-	Execution::Execution(TrialID trialID, MachineID machineID) : trialID(trialID), machineID(machineID){ ecs = ecs_pre;}
-
-	void Execution::commit() {
-    ID = executions.size();
-    executions.push_back(*this);
-    ecs = ecs_ok;
 	}
 
 	Trial::Trial(DataCollectionID dataCollectionID, MachineID machineID,
@@ -254,7 +243,7 @@ namespace eiger{
 	}
 
 	void NondeterministicMetric::print(std::ostream& str) const {
-		str << NONDETERMINISTICMETRIC_COMMIT << ";" << executionID << ";" 
+		str << NONDETERMINISTICMETRIC_COMMIT << ";" << trialID << ";" 
         << metricID << ";" << value;
 	}
 
@@ -266,11 +255,6 @@ namespace eiger{
 	void MachineMetric::print(std::ostream& str) const {
 		str << MACHINEMETRIC_COMMIT << ";" << machineID <<";"<< metricID << ";" 
         << value;
-	}
-
-	void Execution::print(std::ostream& str) const {
-		str << EXECUTION_COMMIT << ";" << trialID << ";" << machineID << ";" 
-        << ID;
 	}
 
 	void Trial::print(std::ostream& str) const {

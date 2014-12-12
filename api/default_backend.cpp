@@ -17,7 +17,6 @@ void do_disconnect(const string& dbname,
                    const vector<Dataset>& datasets_e,
                    const vector<Machine>& machines_e,
                    const vector<Trial>& trials_e,
-                   const vector<Execution>& executions_e,
                    const vector<Metric>& metrics_e,
                    const vector<NondeterministicMetric>& nondet_metrics_e,
                    const vector<DeterministicMetric>& det_metrics_e,
@@ -27,7 +26,6 @@ void do_disconnect(const string& dbname,
   vector<Dataset> datasets = datasets_e;
   vector<Machine> machines = machines_e;
   vector<Trial> trials = trials_e;
-  vector<Execution> executions = executions_e;
   vector<Metric> metrics = metrics_e;
   vector<NondeterministicMetric> nondet_metrics = nondet_metrics_e;
   vector<DeterministicMetric> det_metrics = det_metrics_e;
@@ -51,8 +49,7 @@ void do_disconnect(const string& dbname,
 
   sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, NULL);
 
-  vector<int> dc_ids, machine_ids, app_ids, metric_ids, dataset_ids, trial_ids, 
-              execution_ids;
+  vector<int> dc_ids, machine_ids, app_ids, metric_ids, dataset_ids, trial_ids;
   sqlite3_stmt* insert_statement;
   sqlite3_stmt* select_statement;
 
@@ -215,36 +212,17 @@ void do_disconnect(const string& dbname,
   }
   sqlite3_finalize(insert_statement);
 
-  for(auto& exec : executions){
-    exec.machineID = machine_ids[exec.machineID];
-    exec.trialID = trial_ids[exec.trialID];
-  }
-  sqlite3_prepare_v2(db, 
-                     "INSERT OR IGNORE INTO executions"
-                     "(machineID, trialID) "
-                     "VALUES(?,?)", 
-                     -1, &insert_statement, NULL);
-  for(const auto& exec : executions){
-    sqlite3_bind_int(insert_statement, 1, exec.trialID);
-    sqlite3_bind_int(insert_statement, 2, exec.machineID);
-    sqlite3_step(insert_statement);
-    sqlite3_reset(insert_statement);
-
-    execution_ids.push_back(sqlite3_last_insert_rowid(db));
-  }
-  sqlite3_finalize(insert_statement);
-
   for(auto& ndm : nondet_metrics){
-    ndm.executionID = execution_ids[ndm.executionID];
+    ndm.trialID = trial_ids[ndm.trialID];
     ndm.metricID = metric_ids[ndm.metricID];
   }
   sqlite3_prepare_v2(db, 
                      "INSERT OR IGNORE INTO nondeterministic_metrics"
-                     "(executionID, metricID, metric) "
+                     "(trialID, metricID, metric) "
                      "VALUES(?,?,?)", 
                      -1, &insert_statement, NULL);
   for(const auto& ndmet : nondet_metrics){
-    sqlite3_bind_int(insert_statement, 1, ndmet.executionID);
+    sqlite3_bind_int(insert_statement, 1, ndmet.trialID);
     sqlite3_bind_int(insert_statement, 2, ndmet.metricID);
     sqlite3_bind_double(insert_statement, 3, ndmet.value);
     sqlite3_step(insert_statement);

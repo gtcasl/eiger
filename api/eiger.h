@@ -96,7 +96,6 @@ namespace eiger{
 #define COVARIANT_GETID(D) \
       D getID() { assert((ecs == ecs_ok) && #D " requested from uncommited/failed object."); return D(ID,0); }
 
-DERIVED_ID(ExecutionID);
 DERIVED_ID(MetricID);
 DERIVED_ID(TrialID);
 DERIVED_ID(MachineID);
@@ -146,12 +145,12 @@ DERIVED_ID(DataCollectionID);
   class NondeterministicMetric: public EigerClass {
     public:
 			// Members
-      int executionID;
+      int trialID;
       int metricID;
       double value;
 
 			// Constructors
-      NondeterministicMetric(ExecutionID executionID, MetricID metricID, double value);
+      NondeterministicMetric(TrialID trialID, MetricID metricID, double value);
 
 			// Methods
 			void commit();
@@ -193,24 +192,6 @@ DERIVED_ID(DataCollectionID);
     protected:
       void print(std::ostream& str) const;
   };
-
-  class Execution : public EigerIdentifiedClass {
-  	public:
-		  	// Members
-	  int trialID;
-	  int machineID;
-
-	  		// Constructors
-	  Execution(TrialID trialID, MachineID machineID);
-
-	  		// Methods
-	  void commit();
-	  COVARIANT_GETID(ExecutionID);
-
-    protected:
-    void print(std::ostream& str) const;
-  };
-
 
   class Trial : public EigerIdentifiedClass {
     public:
