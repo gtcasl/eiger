@@ -1,0 +1,7 @@
+*.in
+aclocal.m4
+*.o
+autom4te.cache
+configure
+m4
+config
