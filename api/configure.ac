@@ -8,7 +8,7 @@ AC_PROG_CXX
 
 LT_INIT
 
-# mysql
+# sqlite
 AC_ARG_WITH([sqlite-include-path],
 			[AS_HELP_STRING([--with-sqlite-include-path],
 							[location of the sqlite3 headers, defaults to /usr/include])],
