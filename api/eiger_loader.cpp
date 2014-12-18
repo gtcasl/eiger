@@ -8,7 +8,6 @@
 * and the appropriate commands are executed.
 **********************************************************/
 #include <iostream>
-#include <boost/algorithm/string.hpp>
 // C++ string includes
 #include <string>
 // STL includes
@@ -66,7 +65,11 @@ int toInt(std::string s) {
 void one(std::string s) {
   std::vector<std::string> v;
   if (s.size()==0 ) return;
-  boost::split(v,s,boost::is_any_of( ";" ) );
+  std::stringstream sstream{s};
+  std::string elem;
+  while(std::getline(sstream, elem, ';')){
+    v.push_back(elem);
+  }
   dispatch d;
   if (domap.find(v[0]) != domap.end()) {
     d = domap[v[0]];
