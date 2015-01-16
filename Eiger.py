@@ -28,25 +28,11 @@ def run(args):
     if args['input'] == None:
         print "Loading training data..."
         training_DC = database.DataCollection(args['training_datacollection'], 
-                                              db=args['db'], 
-                                              user=args['user'], 
-                                              passwd=args['passwd'],
-                                              host=args['host'])
+                                              args['db'])
         if args['dump_csv'] is not None:
             header = ','.join([met[0] for met in training_DC.metrics])
             np.savetxt(args['dump_csv'], training_DC.profile, delimiter=',', 
                        header=header, comments='')
-            return
-        if(args['predictor_metrics'] is not None):
-            metric_ids = training_DC.metricIndexByName(args['predictor_metrics'])
-        else:
-            metric_ids = training_DC.metricIndexByType('deterministic', 
-                                                       'nondeterministic')
-        metric_names = [training_DC.metrics[mid][0] for mid in metric_ids]
-        try:
-            training_profile = training_DC.profile[:,metric_ids]
-        except IndexError:
-            print "Unable to make model for empty data collection. Aborting..."
             return
         for idx,metric in enumerate(training_DC.metrics):
             if(metric[0] == args['performance_metric']):
@@ -60,12 +46,26 @@ def run(args):
                 if my_type == 'result':
                     print "\t%s" % (my_name,)
             return
+        if(args['predictor_metrics'] is not None):
+            metric_ids = training_DC.metricIndexByName(args['predictor_metrics'])
+        else:
+            metric_ids = training_DC.metricIndexByType('deterministic', 
+                                                       'nondeterministic')
+        try:
+            metric_ids.remove(performance_metric_id)
+        except ValueError:
+            pass
+        metric_names = [training_DC.metrics[mid][0] for mid in metric_ids]
+        try:
+            training_profile = training_DC.profile[:,metric_ids]
+        except IndexError:
+            print "Unable to make model for empty data collection. Aborting..."
+            return
 
         #pca
         training_pca = PCA.PCA(training_profile)
         nonzero_components = training_pca.nonzeroComponents()
-        ncols = np.shape(training_profile)[1]
-        rotation_matrix = np.eye(ncols)[:,nonzero_components]
+        rotation_matrix = training_pca.components[:,nonzero_components]
         rotated_training_profile = np.dot(training_profile, rotation_matrix)
 
         print "Visualizing PCA..."
@@ -104,7 +104,7 @@ def run(args):
                                 for row in rotation_matrix.tolist()]))
             for i in range(n_clusters):
                 cluster_profile = rotated_training_profile[clusters==i,:]
-                cluster_performance = training_performance[clusters==i,:]
+                cluster_performance = training_performance[clusters==i]
                 regression = LinearRegression.LinearRegression(cluster_profile,
                                                                cluster_performance)
                 pool = LinearRegression.powerLadderPool(cluster_profile.shape)
@@ -139,7 +139,9 @@ def run(args):
                 modelfile.write(repr(models[i]))
                 modelfile.write('\n') # need a trailing newline
                 print "Index\tMetric Name"
-                print '\n'.join("%s\t%s" % (i, metric_names[i]) for i in nonzero_components)
+                print '\n'.join("%s\t%s" % metric in enumerate(metric_names)
+                print "PCA matrix:"
+                print rotation_matrix 
                 print "Model:\n" + str(models[i])
 
                 print "Finished modeling cluster %s:" % (i,)
@@ -179,10 +181,7 @@ def run(args):
         print "Running experiment on data collection %s..." % \
               (DC,)
         experiment_DC = database.DataCollection(DC, 
-                                                db=args['db'], 
-                                                user=args['user'], 
-                                                passwd=args['passwd'],
-                                                host=args['host'])
+                                                args['db'])
         _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
                        experiment_DC, args, metric_names)
     print "Done!"
@@ -199,13 +198,12 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
     unordered_metric_ids = experiment_DC.metricIndexByType('deterministic', 
                                                            'nondeterministic')
     unordered_metric_names = [experiment_DC.metrics[mid][0] for mid in unordered_metric_ids]
-    if set(unordered_metric_names) != set(metric_names):
-        print ("Training datacollection and experiment datacollection "
-               "do not have matching metrics. Aborting...")
+    # make sure all metric_names are in experiment_DC.metrics[:][0]
+    have_metrics = [x in unordered_metric_names for x in metric_names]
+    if not all(have_metrics):
+        print("Experiment DC does not have matching metrics. Aborting...")
         return
     # set the correct ordering
-    expr_metric_names = [unordered_metric_names.index(name) 
-                         for name in metric_names]
     expr_metric_ids = [unordered_metric_ids[unordered_metric_names.index(name)] 
                        for name in metric_names]
         
@@ -224,7 +222,7 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
 
     prediction = np.empty_like(performance)
     for i in range(len(kmeans.cluster_centers_)):
-        prediction[clusters==i,:] = abs(models[i].poll(rotated_profile[clusters==i,:]))
+        prediction[clusters==i] = abs(models[i].poll(rotated_profile[clusters==i]))
 
     if(args['show_prediction']):
         print "Actual\t\tPredicted"

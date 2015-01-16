@@ -186,8 +186,8 @@ class LinearRegression:
         test_data  = np.take(test_lookup, 
                              [pool.index(i) for i in model.functions], 
                              axis=1, mode='clip')
-        train_res = self.Y[train_index,:]
-        test_res = self.Y[test_index,:]
+        train_res = self.Y[train_index]
+        test_res = self.Y[test_index]
         (b, residues, rank, s) = np.linalg.lstsq(train_data, train_res)
         yhat = np.dot(test_data, b)
         ybar = np.average(test_res)
