@@ -14,8 +14,7 @@ using std::vector;
 
 namespace eiger{
 
-void do_disconnect(const string& dbloc, const string& dbname, 
-                   const string& user, const string& passwd,
+void do_disconnect(const string& dbname, 
                    const vector<DataCollection>& datacollections,
                    const vector<Application>& applications,
                    const vector<Dataset>& datasets,
@@ -34,8 +33,7 @@ void do_disconnect(const string& dbloc, const string& dbname,
   fake_log.precision(18);
   fake_log << FEVERSION<<";2\n";
   fake_log << FEFORMAT << ";" KWFORMAT "\n";
-  fake_log << FECONNECT << ";" << dbloc << ";" << dbname << ";" <<user << ";" 
-            << passwd << "\n";
+  fake_log << FECONNECT << ";" << dbname << "\n";
 
   std::copy(datacollections.begin(), datacollections.end(),
             std::ostream_iterator<DataCollection>(fake_log, "\n"));

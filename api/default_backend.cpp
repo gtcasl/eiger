@@ -13,6 +13,16 @@ using namespace std;
 
 namespace eiger{
 
+int db_check_callback(void* is_db_already, int num_cols, char** col_text, char** col_name){
+  if(num_cols > 0){
+    if(stoi(col_text[0]) != 0){
+      *(bool*)is_db_already = true;
+    }
+  }
+
+  return 0;
+}
+
 void do_disconnect(const string& dbname, 
                    const vector<DataCollection>& datacollections_e,
                    const vector<Application>& applications_e,
@@ -39,14 +49,23 @@ void do_disconnect(const string& dbname,
     cerr << sqlite3_errstr(err) << endl;
     exit(-1);
   }
-
-  ifstream ifs(SCHEMAFILE);
-  stringstream schema;
-  schema << ifs.rdbuf();
-  err = sqlite3_exec(db, schema.str().c_str(), NULL, NULL, NULL);
+  bool is_db_already = false;
+  err = sqlite3_exec(db, "pragma schema_version;", db_check_callback, (void*)&is_db_already, NULL);
   if(err != SQLITE_OK){
     cerr << sqlite3_errstr(err) << endl;
     exit(-1);
+  }
+
+  // Only reload schema if the db file isn't valid
+  if(!is_db_already){
+    ifstream ifs(SCHEMAFILE);
+    stringstream schema;
+    schema << ifs.rdbuf();
+    err = sqlite3_exec(db, schema.str().c_str(), NULL, NULL, NULL);
+    if(err != SQLITE_OK){
+      cerr << sqlite3_errstr(err) << endl;
+      exit(-1);
+    }
   }
 
   sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, NULL);
@@ -123,14 +142,27 @@ void do_disconnect(const string& dbname,
 
   sqlite3_prepare_v2(db, 
                      "INSERT OR IGNORE INTO metrics"
-                     "(name, description) VALUES(?,?)", 
+                     "(type, name, description) VALUES(?,?,?)", 
                      -1, &insert_statement, NULL);
   sqlite3_prepare_v2(db,
                      "SELECT ID FROM metrics WHERE name=?",
                      -1, &select_statement, NULL);
   for(const auto& me : metrics){
-    sqlite3_bind_text(insert_statement, 1, me.name.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(insert_statement, 2, me.description.c_str(), -1, 
+    switch(me.type){
+      case DETERMINISTIC:
+        sqlite3_bind_text(insert_statement, 1, "deterministic", -1, SQLITE_STATIC);
+        break;
+      case NONDETERMINISTIC:
+        sqlite3_bind_text(insert_statement, 1, "nondeterministic", -1, SQLITE_STATIC);
+        break;
+      case MACHINE:
+        sqlite3_bind_text(insert_statement, 1, "machine", -1, SQLITE_STATIC);
+        break;
+      default:
+        throw "BAAAD metric type";
+    }
+    sqlite3_bind_text(insert_statement, 2, me.name.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_statement, 3, me.description.c_str(), -1, 
                       SQLITE_STATIC);
     sqlite3_step(insert_statement);
     sqlite3_reset(insert_statement);
