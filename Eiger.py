@@ -17,6 +17,7 @@ import tempfile
 import shutil
 import os
 from ast import literal_eval
+import json
 
 from sklearn.cluster import KMeans
 from eiger import database, PCA, LinearRegression
@@ -91,7 +92,10 @@ def run(args):
         models = [0] * len(clusters)
 
         print "Modeling..."
+        # for printing the json file
+        json_root = {}
         with tempfile.NamedTemporaryFile(delete=False) as modelfile:
+            # For printing the original model file encoding 
             modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
             modelfile.write("[%s](%s)\n" % 
                     (len(means), ','.join([str(mean) for mean in means.tolist()])))
@@ -102,12 +106,18 @@ def run(args):
                             ','.join(["(%s)" % 
                                 ','.join([str(elem) for elem in row]) 
                                 for row in rotation_matrix.tolist()]))
+            # for printing the json file
+            json_root["metric_names"] = [name for name in metric_names]
+            json_root["means"] = [mean for mean in means.tolist()]
+            json_root["std_devs"] = [stdev for stdev in stdevs.tolist()]
+            json_root["rotation_matrix"] = [[elem for elem in row] for row in rotation_matrix.tolist()]
+            json_root["clusters"] = []
+
             for i in range(n_clusters):
                 cluster_profile = rotated_training_profile[clusters==i,:]
                 cluster_performance = training_performance[clusters==i]
                 regression = LinearRegression.LinearRegression(cluster_profile,
                                                                cluster_performance)
-                pool = LinearRegression.powerLadderPool(cluster_profile.shape)
                 pool = [LinearRegression.identityFunction()]
                 for col in range(cluster_profile.shape[1]):
                     if('inv_quadratic' in args['regressor_functions']):
@@ -131,15 +141,23 @@ def run(args):
                         threshold=args['threshold'],
                         folds=args['nfolds'])
                 
-                # dump model to file
+                # dump model to original file encoding
                 modelfile.write('Model %s\n' % i)
                 modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
                                                 ','.join([str(center) for center in
                                                     kmeans.cluster_centers_[i].tolist()])))
                 modelfile.write(repr(models[i]))
                 modelfile.write('\n') # need a trailing newline
+
+                # dump model for json encoding
+                json_cluster = {}
+                json_cluster["center"] = [center for center in kmeans.cluster_centers_[i].tolist()]
+                # get models in json format
+                json_cluster["regressors"] = models[i].toJSONObject()
+                json_root["clusters"].append(json_cluster)
+
                 print "Index\tMetric Name"
-                print '\n'.join("%s\t%s" % metric in enumerate(metric_names))
+                print '\n'.join("%s\t%s" % metric for metric in enumerate(metric_names))
                 print "PCA matrix:"
                 print rotation_matrix 
                 print "Model:\n" + str(models[i])
@@ -150,9 +168,11 @@ def run(args):
            
         # if we want to save the model file, copy it now
         if args['output'] == True:
-            shutil.move(modelfile.name, training_DC.name + '.model')
-        else:
-            os.remove(modelfile.name)
+            if args['json'] == True:
+                with open(training_DC.name + '.model', 'w') as outfile:
+                    json.dump(json_root, outfile, indent=4)
+            else:
+                shutil.copy(modelfile.name, training_DC.name + '.model')
     else:
         lines = iter(open(args['input'],'r').read().splitlines())
         n_params = int(lines.next())
@@ -417,7 +437,7 @@ def main():
     parser.add_argument('--output', '-o',
                         action='store_true',
                         default=False,
-                        help='Filename where this model should be saved to')
+                        help='If set, serialize model to file "<training_db>.model"')
     parser.add_argument('--clusters', '-k',
                         type=int,
                         default=1,
@@ -433,6 +453,10 @@ def main():
                         default=['inv_quadratic', 'inv_linear', 'inv_sqrt', 
                                  'sqrt', 'linear', 'quadratic', 'log', 'cross'],
                         help='Regressor functions to use. Options are linear, quadratic, sqrt, inv_linear, inv_quadratic, inv_sqrt, log, and cross. Defaults to all.')
+    parser.add_argument('--json', '-j',
+                        action='store_true',
+                        default=False,
+                        help='Output model in JSON format, rather than bespoke')
     
     
     return vars(parser.parse_args())

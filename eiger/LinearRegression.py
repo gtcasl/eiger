@@ -17,9 +17,10 @@ class Function:
     """ 
     Containter for managing different representations of model functions 
     """
-    def __init__(self, func, encoded, readible=None):
+    def __init__(self, func, encoded, json, readible=None):
         self.encoded = encoded
         self.func = func
+        self.json = json
         self.readible = encoded if readible==None else readible
     def __str__(self):
         return self.readible
@@ -30,6 +31,8 @@ class Function:
             return self.func(vec)
         except OverflowError:
             return 0.0
+    def toJSONObject(self):
+        return self.json
 
 class Model:
     """
@@ -62,6 +65,13 @@ class Model:
         result = '\n'.join(["%.3e * %s + " % pred for pred in zip(self.weights, self.functions)])
         return result[:-3] #get rid of trailing ' + ' string
 
+    def toJSONObject(self):
+        result = []
+        for (weight, func) in zip(self.weights, self.functions):
+            regressor = func.toJSONObject()
+            regressor["weight"] = weight
+            result.append(regressor)
+        return result
 #
 class LinearRegression:
     """
@@ -216,23 +226,28 @@ def stringToFunction(encoded_string):
     return function_generators[int(encoding[0])](*encoding[1:])
 
 def identityFunction():
-    return Function(lambda x: 1.0, '0', '1')
+    json = {"function": "identity"}
+    return Function(lambda x: 1.0, '0', json, '1')
 
 def powerFunction(i,n):
     fn = lambda x: math.pow(abs(x[int(i)]),float(n)) if x[int(i)] != 0.0 else 1.0
-    return Function(fn, '1 %s %s' % (i,n), 'x[%s]^%s' % (i,n))
+    json = {"function": "power", "index": i, "exponent": n}
+    return Function(fn, '1 %s %s' % (i,n), json, 'x[%s]^%s' % (i,n))
 
 def crossFunction(i,j):
     fn = lambda x: x[int(i)] * x[int(j)]
-    return Function(fn, '2 %s %s' % (i,j), 'x[%s] * x[%s]' % (i,j))
+    json = {"function": "product", "first_idx": i, "second_idx": j}
+    return Function(fn, '2 %s %s' % (i,j), json, 'x[%s] * x[%s]' % (i,j))
 
 def sqrtFunction(i):
     fn = lambda x: math.sqrt(abs(x[int(i)]))
-    return Function(fn, '3 %s' % i, 'sqrt(|x[%s]|)' % i)
+    json = {"function": "sqrt", "index": i}
+    return Function(fn, '3 %s' % i, json, 'sqrt(|x[%s]|)' % i)
 
 def logFunction(i):
     fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
-    return Function(fn, '4 %s' % i, 'log(|x[%s]|)' % i)
+    json = {"function": "log", "index": i}
+    return Function(fn, '4 %s' % i, json, 'log(|x[%s]|)' % i)
 
 def powerLadderPool(Xshape):
     pool = [identityFunction()]
