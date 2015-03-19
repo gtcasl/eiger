@@ -139,7 +139,7 @@ def run(args):
                 modelfile.write(repr(models[i]))
                 modelfile.write('\n') # need a trailing newline
                 print "Index\tMetric Name"
-                print '\n'.join("%s\t%s" % metric in enumerate(metric_names)
+                print '\n'.join("%s\t%s" % metric in enumerate(metric_names))
                 print "PCA matrix:"
                 print rotation_matrix 
                 print "Model:\n" + str(models[i])
