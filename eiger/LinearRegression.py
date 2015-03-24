@@ -221,7 +221,8 @@ def stringToFunction(encoded_string):
                            powerFunction,
                            crossFunction,
                            sqrtFunction,
-                           logFunction]
+                           logFunction,
+                           divFunction]
     encoding = encoded_string.split()
     return function_generators[int(encoding[0])](*encoding[1:])
 
@@ -248,6 +249,11 @@ def logFunction(i):
     fn = lambda x: math.log(abs(x[int(i)]), 2) if x[int(i)] != 0.0 else 1.0
     json = {"function": "log", "index": i}
     return Function(fn, '4 %s' % i, json, 'log(|x[%s]|)' % i)
+
+def divFunction(i,j):
+    fn = lambda x: x[int(i)] / x[int(j)]
+    json = {"function": "quotient", "first_idx": i, "second_idx": j}
+    return Function(fn, '5 %s %s' % (i,j), json, 'x[%s] / x[%s]' % (i,j))
 
 def powerLadderPool(Xshape):
     pool = [identityFunction()]

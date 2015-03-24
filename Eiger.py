@@ -137,6 +137,10 @@ def run(args):
                     if('cross' in args['regressor_functions']):
                         for xcol in range(col, cluster_profile.shape[1]):
                             pool.append(LinearRegression.crossFunction(col, xcol))
+                    if('div' in args['regressor_functions']):
+                        for xcol in range(col, cluster_profile.shape[1]):
+                            pool.append(LinearRegression.divFunction(col,xcol))
+                            pool.append(LinearRegression.divFunction(xcol,col))
                 (models[i], r_squared, r_squared_adj) = regression.select(pool, 
                         threshold=args['threshold'],
                         folds=args['nfolds'])
@@ -451,8 +455,8 @@ def main():
     parser.add_argument('--regressor-functions',
                         nargs='*',
                         default=['inv_quadratic', 'inv_linear', 'inv_sqrt', 
-                                 'sqrt', 'linear', 'quadratic', 'log', 'cross'],
-                        help='Regressor functions to use. Options are linear, quadratic, sqrt, inv_linear, inv_quadratic, inv_sqrt, log, and cross. Defaults to all.')
+                                 'sqrt', 'linear', 'quadratic', 'log', 'cross', 'div'],
+                        help='Regressor functions to use. Options are linear, quadratic, sqrt, inv_linear, inv_quadratic, inv_sqrt, log, cross, and div. Defaults to all.')
     parser.add_argument('--json', '-j',
                         action='store_true',
                         default=False,
