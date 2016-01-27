@@ -162,8 +162,10 @@ void one(std::string s) {
   case Metric_commit:
     eiger::metric_type_t type;
     if(v[1].compare("deterministic") == 0) type = eiger::DETERMINISTIC;
-    if(v[1].compare("nondeterministic") == 0) type = eiger::NONDETERMINISTIC;
-    if(v[1].compare("machine") == 0) type = eiger::MACHINE;
+    else if(v[1].compare("nondeterministic") == 0) type = eiger::NONDETERMINISTIC;
+    else if(v[1].compare("machine") == 0) type = eiger::MACHINE;
+    else throw "unexpected metric commit type";
+
     eiger::Metric(type,v[2],v[3]).commit();
     break;
   default:
