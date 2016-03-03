@@ -147,6 +147,11 @@ def trainModel(args):
             json.dump(json_root, outfile, indent=4)
     else:
         shutil.copy(modelfile.name, outfilename)
+    if args.test_fit:
+        args.experiment_dc = args.training_dc
+        args.model = outfilename
+        testModel(args)
+
 
 def dumpCSV(args):
     training_DC = database.DataCollection(args.training_dc, args.database)
@@ -161,7 +166,32 @@ def dumpCSV(args):
             header=header, comments='')
 
 def testModel(args):
-    print "test"
+    print "Testing the model fit..."
+    test_DC = database.DataCollection(args.experiment_dc, args.database)
+
+    # Read in the model file (bespoke version)
+    lines = iter(open(args.model,'r').read().splitlines())
+    n_params = int(lines.next())
+    metric_names = [lines.next() for i in range(n_params)]
+    means = _stringToArray(lines.next())
+    stdevs = _stringToArray(lines.next())
+    rotation_matrix = _stringToArray(lines.next())
+    models = []
+    centroids = []
+    try:
+        while True:
+            name = lines.next() # kill a line
+            centroids.append(_stringToArray(lines.next()))
+            weights = _stringToArray(lines.next())
+            functions = [LinearRegression.stringToFunction(lines.next()) 
+                         for i in range(weights.shape[0])]
+            models.append(LinearRegression.Model(functions, weights))
+    except StopIteration:
+        pass
+    kmeans = KMeans(len(centroids))
+    kmeans.cluster_centers_ = np.array(centroids)
+    _runExperiment(kmeans, means, stdevs, models, rotation_matrix, test_DC,
+            args, metric_names)
 
 def plotModel(args):
     print "plot"
@@ -353,8 +383,10 @@ def _stringToArray(string):
     """
     Parse string of form [len](number,number,number,...) to a numpy array.
     """
-    just_values = string[string.find('('):]
-    return np.array(literal_eval(just_values))
+    length = string[:string.find('(')]
+    values = string[string.find('('):]
+    arr = np.array(literal_eval(values))
+    return np.reshape(arr, literal_eval(length))
 
 def _runExperiment(kmeans, means, stdevs, models, rotation_matrix, 
                    experiment_DC, args, metric_names):
@@ -371,7 +403,7 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
                        for name in metric_names]
         
     for idx,metric in enumerate(experiment_DC.metrics):
-        if(metric[0] == args['performance_metric']):
+        if(metric[0] == args.target):
             performance_metric_id = idx
     performance = experiment_DC.profile[:,performance_metric_id]
     profile = experiment_DC.profile[:,expr_metric_ids]
@@ -387,24 +419,20 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
     for i in range(len(kmeans.cluster_centers_)):
         prediction[clusters==i] = abs(models[i].poll(rotated_profile[clusters==i]))
 
-    if(args['show_prediction']):
+    if args.show_prediction:
         print "Actual\t\tPredicted"
         print '\n'.join("%s\t%s" % x for x in zip(performance,prediction))
-    if(args['plot_performance_line']):
-        _figureline(performance, prediction, args)
-    if(args['plot_performance_scatter']):
-        _scatter(performance, prediction, args)
-    if(args['show_prediction_statistics']):
-        mse = sum([(a-p)**2 for a,p in 
-                   zip(performance, prediction)]) / len(performance)
-        rmse = math.sqrt(mse)
-        mape = 100 * sum([abs((a-p)/a) for a,p in 
-                          zip(performance,prediction)]) / len(performance)
 
-        print "Number of experiment trials: %s" % len(performance)
-        print "Mean Average Percent Error: %s" % mape
-        print "Mean Squared Error: %s" % mse
-        print "Root Mean Squared Error: %s" % rmse
+    mse = sum([(a-p)**2 for a,p in 
+               zip(performance, prediction)]) / len(performance)
+    rmse = math.sqrt(mse)
+    mape = 100 * sum([abs((a-p)/a) for a,p in 
+                      zip(performance,prediction)]) / len(performance)
+
+    print "Number of experiment trials: %s" % len(performance)
+    print "Mean Average Percent Error: %s" % mape
+    print "Mean Squared Error: %s" % mse
+    print "Root Mean Squared Error: %s" % rmse
 
 def _figureline(actual, prediction, args):
     plt.figure()
@@ -527,6 +555,8 @@ if __name__ == "__main__":
             help='Name of the data collection to experiment on')
     test_parser.add_argument('model', type=str,
             help='Name of the model to use')
+    test_parser.add_argument('target', type=str,
+            help='Name of the target metric to predict')
     test_parser.add_argument('--show-prediction', action='store_true',
             default=False,
             help='If set, send the actual and predicted values to stdout.')
