@@ -194,190 +194,20 @@ def testModel(args):
             args, metric_names)
 
 def plotModel(args):
-    print "plot"
-
-def run(args):
-    """
-    Interface into Eiger model generation/polling/serialization/printing/etc.
-    """
-    if args['input'] == None:
-        print "Loading training data..."
-        training_DC = database.DataCollection(args['training_datacollection'], 
-                                              args['db'])
-        for idx,metric in enumerate(training_DC.metrics):
-            if(metric[0] == args['performance_metric']):
-                performance_metric_id = idx
-        try:
-            training_performance = training_DC.profile[:,performance_metric_id]
-        except UnboundLocalError:
-            print "Unable to find performance metric '%s', " \
-            "please specify a valid one: " % (args['performance_metric'],)
-            for (my_name,my_desc,my_type) in training_DC.metrics:
-                if my_type == 'result':
-                    print "\t%s" % (my_name,)
-            return
-        if(args['predictor_metrics'] is not None):
-            metric_ids = training_DC.metricIndexByName(args['predictor_metrics'])
-        else:
-            metric_ids = training_DC.metricIndexByType('deterministic', 
-                                                       'nondeterministic')
-        try:
-            metric_ids.remove(performance_metric_id)
-        except ValueError:
-            pass
-        metric_names = [training_DC.metrics[mid][0] for mid in metric_ids]
-        try:
-            training_profile = training_DC.profile[:,metric_ids]
-        except IndexError:
-            print "Unable to make model for empty data collection. Aborting..."
-            return
-
-        #pca
-        training_pca = PCA.PCA(training_profile)
-        nonzero_components = training_pca.nonzeroComponents()
-        rotation_matrix = training_pca.components[:,nonzero_components]
-        rotated_training_profile = np.dot(training_profile, rotation_matrix)
-
-        print "Visualizing PCA..."
-        if(args['plot_scree']):
-            print training_pca.loadings
-            PCA.PlotScree(training_pca.loadings, log=False, 
-                              title="PCA Scree Plot")
-        if(args['plot_pcs_per_metric']):
-            PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
-                                 title="PCs Per Metric")
-        if(args['plot_metrics_per_pc']):
-            PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
-                                 title="Metrics Per PC")
-        #kmeans
-        n_clusters = args['clusters']
-        kmeans = KMeans(n_clusters)
-        means = np.mean(rotated_training_profile, axis=0)
-        stdevs = np.std(rotated_training_profile - means, axis=0, ddof=1)
-        stdevs[stdevs==0.0] = 1.0
-        clusters = kmeans.fit_predict((rotated_training_profile - means)/stdevs)
-
-        # reserve a vector for each model created per cluster
-        models = [0] * len(clusters)
-
-        print "Modeling..."
-        # for printing the json file
-        json_root = {}
-        with tempfile.NamedTemporaryFile(delete=False) as modelfile:
-            # For printing the original model file encoding 
-            modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
-            modelfile.write("[%s](%s)\n" % 
-                    (len(means), ','.join([str(mean) for mean in means.tolist()])))
-            modelfile.write("[%s](%s)\n" % 
-                    (len(stdevs), ','.join([str(stdev) for stdev in stdevs.tolist()])))
-            modelfile.write("[%s,%s]" % rotation_matrix.shape)
-            modelfile.write("(%s)\n" % 
-                            ','.join(["(%s)" % 
-                                ','.join([str(elem) for elem in row]) 
-                                for row in rotation_matrix.tolist()]))
-            # for printing the json file
-            json_root["metric_names"] = [name for name in metric_names]
-            json_root["means"] = [mean for mean in means.tolist()]
-            json_root["std_devs"] = [stdev for stdev in stdevs.tolist()]
-            json_root["rotation_matrix"] = [[elem for elem in row] for row in rotation_matrix.tolist()]
-            json_root["clusters"] = []
-
-            for i in range(n_clusters):
-                cluster_profile = rotated_training_profile[clusters==i,:]
-                cluster_performance = training_performance[clusters==i]
-                regression = LinearRegression.LinearRegression(cluster_profile,
-                                                               cluster_performance)
-                pool = [LinearRegression.identityFunction()]
-                for col in range(cluster_profile.shape[1]):
-                    if('inv_quadratic' in args['regressor_functions']):
-                        pool.append(LinearRegression.powerFunction(col, -2))
-                    if('inv_linear' in args['regressor_functions']):
-                        pool.append(LinearRegression.powerFunction(col, -1))
-                    if('inv_sqrt' in args['regressor_functions']):
-                        pool.append(LinearRegression.powerFunction(col, -.5))
-                    if('sqrt' in args['regressor_functions']):
-                        pool.append(LinearRegression.powerFunction(col, .5))
-                    if('linear' in args['regressor_functions']):
-                        pool.append(LinearRegression.powerFunction(col, 1))
-                    if('quadratic' in args['regressor_functions']):
-                        pool.append(LinearRegression.powerFunction(col, 2))
-                    if('log' in args['regressor_functions']):
-                        pool.append(LinearRegression.logFunction(col))
-                    if('cross' in args['regressor_functions']):
-                        for xcol in range(col, cluster_profile.shape[1]):
-                            pool.append(LinearRegression.crossFunction(col, xcol))
-                    if('div' in args['regressor_functions']):
-                        for xcol in range(col, cluster_profile.shape[1]):
-                            pool.append(LinearRegression.divFunction(col,xcol))
-                            pool.append(LinearRegression.divFunction(xcol,col))
-                (models[i], r_squared, r_squared_adj) = regression.select(pool, 
-                        threshold=args['threshold'],
-                        folds=args['nfolds'])
-                
-                # dump model to original file encoding
-                modelfile.write('Model %s\n' % i)
-                modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
-                                                ','.join([str(center) for center in
-                                                    kmeans.cluster_centers_[i].tolist()])))
-                modelfile.write(repr(models[i]))
-                modelfile.write('\n') # need a trailing newline
-
-                # dump model for json encoding
-                json_cluster = {}
-                json_cluster["center"] = [center for center in kmeans.cluster_centers_[i].tolist()]
-                # get models in json format
-                json_cluster["regressors"] = models[i].toJSONObject()
-                json_root["clusters"].append(json_cluster)
-
-                print "Index\tMetric Name"
-                print '\n'.join("%s\t%s" % metric for metric in enumerate(metric_names))
-                print "PCA matrix:"
-                print rotation_matrix 
-                print "Model:\n" + str(models[i])
-
-                print "Finished modeling cluster %s:" % (i,)
-                print "r squared = %s" % (r_squared,)
-                print "adjusted r squared = %s" % (r_squared_adj,)
-           
-        # if we want to save the model file, copy it now
-        if args['output'] == True:
-            if args['json'] == True:
-                with open(training_DC.name + '.model', 'w') as outfile:
-                    json.dump(json_root, outfile, indent=4)
-            else:
-                shutil.copy(modelfile.name, training_DC.name + '.model')
-    else:
-        lines = iter(open(args['input'],'r').read().splitlines())
-        n_params = int(lines.next())
-        metric_names = [lines.next() for i in range(n_params)]
-        means = _stringToArray(lines.next())
-        stdevs = _stringToArray(lines.next())
-        rotation_matrix = _stringToArray(lines.next())
-        models = []
-        centroids = []
-        try:
-            while True:
-                name = lines.next() # kill a line
-                centroids.append(_stringToArray(lines.next()))
-                weights = _stringToArray(lines.next())
-                functions = [LinearRegression.stringToFunction(lines.next()) 
-                             for i in range(weights.shape[0])]
-                models.append(LinearRegression.Model(functions, weights))
-        except StopIteration:
-            pass
-        kmeans = KMeans(len(centroids))
-        kmeans.cluster_centers_ = np.array(centroids)
-
-    if(args['experiment_datacollection'] or args['test_fit']):
-        DC = args['experiment_datacollection'] if \
-            args['experiment_datacollection'] else args['training_datacollection']
-        print "Running experiment on data collection %s..." % \
-              (DC,)
-        experiment_DC = database.DataCollection(DC, 
-                                                args['db'])
-        _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
-                       experiment_DC, args, metric_names)
-    print "Done!"
+    print "Plotting model..."
+    # Read in the model file (bespoke version)
+    lines = iter(open(args.model,'r').read().splitlines())
+    n_params = int(lines.next())
+    metric_names = [lines.next() for i in range(n_params)]
+    means = _stringToArray(lines.next())
+    stdevs = _stringToArray(lines.next())
+    rotation_matrix = _stringToArray(lines.next())
+    if args.plot_pcs_per_metric:
+        PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
+                             title="PCs Per Metric")
+    if args.plot_metrics_per_pc:
+        PCA.PlotMetricsPerPC(rotation_matrix, metric_names, 
+                             title="Metrics Per PC")
 
 def _stringToArray(string):
     """
@@ -433,53 +263,6 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
     print "Mean Average Percent Error: %s" % mape
     print "Mean Squared Error: %s" % mse
     print "Root Mean Squared Error: %s" % rmse
-
-def _figureline(actual, prediction, args):
-    plt.figure()
-    plt.plot(actual,'r'+args['plot_line_marker_data'])
-    plt.plot(prediction,'b'+args['plot_line_marker_pred'])
-
-    if args['plot_identifier'] != 'NoName':
-        plt.title(args['plot_identifier']+ " Eiger model (blue,"+args['plot_line_marker_pred']+") and training (red,"+args['plot_line_marker_data']+")")
-    else:
-        plt.title('Performance of applications versus prediction')  
-    if args['plot_performance_log'] == True:
-        plt.yscale('log')
-    plt.xlabel('sample number')
-    if args['plot_dump'] == True:
-        pfname=os.path.join(args['plot_dir'],args['plot_identifier']+'_eiger_train.pdf')
-        plt.savefig(pfname,format="pdf")
-    else:
-        plt.show()
-
-def _scatter(actual, prediction, args):
-    plt.figure()
-    plt.plot(actual, prediction, 'b'+args['plot_scatter_marker'])
-    xmin=min(actual)
-    xmax=max(actual)
-    ymin=min(prediction)
-    ymax=max(prediction)
-    diagxmin=min(math.fabs(x) for x in actual)
-    diagymin=min(math.fabs(y) for y in prediction)
-    diagpmin=min(diagxmin,diagymin)
-    pmin=min(xmin,ymin)
-    pmax=max(xmax,ymax)
-    plt.plot([diagpmin,pmax],[diagpmin,pmax],'k-')
-    if args['plot_identifier'] != 'NoName':
-        plt.title(args['plot_identifier'])
-    plt.xlabel('Observed')
-    plt.ylabel('Modeled')
-    if args['plot_performance_log'] == True:
-        plt.yscale('log')
-        plt.xscale('log')
-    if args['plot_scatter_free'] != True:
-        plt.axes().set_aspect('equal')
-    if args['plot_dump'] == True:
-        pfname=os.path.join(args['plot_dir'],args['plot_identifier']+'_eiger_scatter.pdf')
-        plt.savefig(pfname,format="pdf")
-    else:
-        plt.show()
-    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = \
@@ -539,7 +322,6 @@ if __name__ == "__main__":
             'Defaults to all.')
     train_parser.add_argument('--json', action='store_true', default=False,
             help='Output model in JSON format, rather than bespoke')
-    
 
     """DUMP CSV ARGUMENTS"""
     dump_parser.add_argument('database', type=str, help='Name of the database file')
@@ -564,8 +346,6 @@ if __name__ == "__main__":
     """PLOT ARGUMENTS"""
     plot_parser.add_argument('model', type=str,
             help='Name of the model to use')
-    plot_parser.add_argument('--plot-scree', action='store_true', default=False,
-            help='If set, plots the scree graph from principal component analysis')
     plot_parser.add_argument('--plot-pcs-per-metric', action='store_true',
             default=False,
             help='If set, plots the breakdown of principal components per metric.')
@@ -573,16 +353,8 @@ if __name__ == "__main__":
             action='store_true',
             default=False,
             help='If set, plots the breakdown of metrics per principal component.')
-    plot_parser.add_argument('--plot-identifier', type=str, default='NoName',
-            help='Name of the result for plot titles')
-    plot_parser.add_argument('--plot-dump', action='store_true', default=False,
-            help='If set, direct performance plots to files rather than screen.')
-    plot_parser.add_argument('--plot-dir', default=".",
-            help='If set, direct plot files to directory other than cwd.')
 
     args = parser.parse_args()
-    from pprint import pprint
-    pprint(vars(args))
     args.func(args)
     print "Done."
 
