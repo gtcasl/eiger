@@ -18,9 +18,31 @@ import shutil
 import os
 from ast import literal_eval
 import json
+import sys
 
 from sklearn.cluster import KMeans
 from eiger import database, PCA, LinearRegression
+
+def trainModel(args):
+    print "train"
+
+def dumpCSV(args):
+    training_DC = database.DataCollection(args.training_dc, args.database)
+    names = [met[0] for met in training_DC.metrics]
+    if args.metrics != None:
+        names = args.metrics
+    header = ','.join(names)
+    idxs = training_DC.metricIndexByName(names)
+    profile = training_DC.profile[:,idxs]
+    output = sys.stdout if args.output == None else args.output
+    np.savetxt(output, profile, delimiter=',', 
+            header=header, comments='')
+
+def testModel(args):
+    print "test"
+
+def plotModel(args):
+    print "plot"
 
 def run(args):
     """
@@ -30,11 +52,6 @@ def run(args):
         print "Loading training data..."
         training_DC = database.DataCollection(args['training_datacollection'], 
                                               args['db'])
-        if args['dump_csv'] is not None:
-            header = ','.join([met[0] for met in training_DC.metrics])
-            np.savetxt(args['dump_csv'], training_DC.profile, delimiter=',', 
-                       header=header, comments='')
-            return
         for idx,metric in enumerate(training_DC.metrics):
             if(metric[0] == args['performance_metric']):
                 performance_metric_id = idx
@@ -312,161 +329,107 @@ def _scatter(actual, prediction, args):
         plt.savefig(pfname,format="pdf")
     else:
         plt.show()
-
-def main():
-    """ Main program to parse arguments from command line"""
-    parser = argparse.ArgumentParser(description = \
-            'Command line interface into Eiger performance modeling framework \
-             for all model generation, polling, and serialization tasks.',
-             argument_default=None,
-             fromfile_prefix_chars='@')
-
-    """
-    CONNECTION ARGUMENTS
-    """
-    parser.add_argument('--db',
-                        type=str,
-                        help='Name of the database to connect to')
-    parser.add_argument('--user',
-                        type=str,
-                        help='Username to connect to the database')
-    parser.add_argument('--passwd',
-                        type=str,
-                        default='',
-                        help='Password to connect to the database')
-    parser.add_argument('--host',
-                        type=str,
-                        default='localhost',
-                        help='IP address or hostname of database-hosting computer')
-
-    """
-    TRAINING DATA ARGUMENTS
-    """
-    parser.add_argument('--training-datacollection', '-t',
-                        type=str,
-                        help='Name of training data collection')
-    parser.add_argument('--performance-metric',
-                        type=str,
-                        help='Name of the performance metric to predict')
-    parser.add_argument('--show-prediction-statistics',
-                        action='store_true',
-                        default=False,
-                        help='If set several statistics will be printed out describing the experimental prediction.')
-    parser.add_argument('--test-fit',
-                        action='store_true',
-                        default=False,
-                        help='If set will test the model fit against the training data.')
-    parser.add_argument('--show-prediction',
-                        action='store_true',
-                        default=False,
-                        help='If set, send the actual and predicted values to stdout.')
-    parser.add_argument('--predictor-metrics',
-                        nargs='*',
-                        help='List of metrics to use when building a model.')
-    parser.add_argument('--dump-csv',
-                        nargs='?',
-                        help='Instead of modeling, output the specified data ' 
-                        'collection to the provided filename in csv format.')
-
-    """
-    EXPERIMENT DATA ARGUMENTS
-    """
-    parser.add_argument('--experiment-datacollection', '-e',
-                        type=str,
-                        help='Name of experiment data collection')
-
-    """
-    PLOTTING ARGUMENTS
-    """
-    parser.add_argument('--plot-performance-line',
-                        action='store_true',
-                        default=False,
-                        help="If set, plots the exeriment data collection's actual and predicted performance.")
-    parser.add_argument('--plot-performance-scatter',
-                        action='store_true',
-                        default=False,
-                        help='If set, plots the experiment data collection actual vs predicted performance.')
-    parser.add_argument('--plot-performance-log',
-                        action='store_true',
-                        default=False,
-                        help='If set, scatter and line plots use log scale.')
-    parser.add_argument('--plot-scatter-free',
-                        action='store_true',
-                        default=False,
-                        help='If set, let scatter identity line wander from 45 degrees')
-    parser.add_argument('--plot-scatter-marker',
-                        choices=['.' , ',' , '+' , 'x' , 'o'],
-                        default='.',
-                        help='Change the scatter plot marker type')
-    parser.add_argument('--plot-line-marker-pred',
-                        choices=['.' , ',' , '+' , 'x' , 'o'],
-                        default='x',
-                        help='Change the marker type for prediction lines')
-    parser.add_argument('--plot-line-marker-data',
-                        choices=['.' , ',' , '+' , 'x' , 'o'],
-                        default='+',
-                        help='Change the marker type for training data lines')
-    parser.add_argument('--plot-scree',
-                        action='store_true',
-                        default=False,
-                        help='If set, plots the scree graph from principal component analysis')
-    parser.add_argument('--plot-pcs-per-metric',
-                        action='store_true',
-                        default=False,
-                        help='If set, plots the breakdown of principal components per metric.')
-    parser.add_argument('--plot-metrics-per-pc',
-                        action='store_true',
-                        default=False,
-                        help='If set, plots the breakdown of metrics per principal component.')
-    parser.add_argument('--plot-identifier',
-                        type=str,
-                        default='NoName',
-                        help='Name of the result for plot titles')
-    parser.add_argument('--plot-dump',
-                        action='store_true',
-                        default=False,
-                        help='If set, direct performance plots to files rather than screen.')
-    parser.add_argument('--plot-dir',
-                        default=".",
-                        help='If set, direct plot files to directory other than cwd.')
-
-
-    """
-    MODEL CONSTRUCTION ARGUMENTS
-    """
-    parser.add_argument('--input', '-i',
-                        type=str,
-                        default=None,
-                        help='File name of model file to be read and used for running experiments.')
-    parser.add_argument('--output', '-o',
-                        action='store_true',
-                        default=False,
-                        help='If set, serialize model to file "<training_db>.model"')
-    parser.add_argument('--clusters', '-k',
-                        type=int,
-                        default=1,
-                        help='Number of clusters for kmeans')
-    parser.add_argument('--threshold',
-                        type=float,
-                        help='Cutoff threshold of increase in adjusted R-squared value when adding new predictors to the model')
-    parser.add_argument('--nfolds',
-                        type=int,
-                        help='Number of folds to use in k-fold cross validation.')
-    parser.add_argument('--regressor-functions',
-                        nargs='*',
-                        default=['inv_quadratic', 'inv_linear', 'inv_sqrt', 
-                                 'sqrt', 'linear', 'quadratic', 'log', 'cross', 'div'],
-                        help='Regressor functions to use. Options are linear, quadratic, sqrt, inv_linear, inv_quadratic, inv_sqrt, log, cross, and div. Defaults to all.')
-    parser.add_argument('--json', '-j',
-                        action='store_true',
-                        default=False,
-                        help='Output model in JSON format, rather than bespoke')
     
-    
-    return vars(parser.parse_args())
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description = \
+            'Command line interface into Eiger performance modeling framework \
+            for all model generation, polling, and serialization tasks.',
+            argument_default=None,
+            fromfile_prefix_chars='@')
+
+    subparsers = parser.add_subparsers(title='subcommands')
+    train_parser = subparsers.add_parser('train',
+            help='train a model with data from the database',
+            description='Train a model with data from the database')
+    train_parser.set_defaults(func=trainModel)
+    dump_parser = subparsers.add_parser('dump',
+            help='dump data collection to CSV',
+            description='Dump data collection as CSV')
+    dump_parser.set_defaults(func=dumpCSV)
+    test_parser = subparsers.add_parser('test',
+            help='test how well a model predicts a data collection',
+            description='Test how well a model predicts a data collection')
+    test_parser.set_defaults(func=testModel)
+    plot_parser = subparsers.add_parser('plot',
+            help='plot the behavior of a model',
+            description='Plot the behavior of a model')
+    plot_parser.set_defaults(func=plotModel)
+    #convert_parser = subparsers.add_parser('convert',
+    #        help='transform a model into a different file format',
+    #        description='Transform a model into a different file format')
+
+    """TRAINING ARGUMENTS"""
+    train_parser.add_argument('database', type=str, help='Name of the database file')
+    train_parser.add_argument('training_dc', type=str,
+            help='Name of the training data collection')
+    train_parser.add_argument('target', type=str,
+            help='Name of the target metric to predict')
+    train_parser.add_argument('--test-fit', action='store_true', default=False,
+            help='If set will test the model fit against the training data.')
+    train_parser.add_argument('--show-prediction', action='store_true',
+            default=False,
+            help='If set, send the actual and predicted values to stdout.')
+    train_parser.add_argument('--predictor-metrics', nargs='*',
+            help='Only use these metrics when building a model.')
+    train_parser.add_argument('--output', type=str, 
+            help='Filename to output file to, otherwise use "<training_db>.model"')
+    train_parser.add_argument('--clusters', '-k', type=int, default=1,
+            help='Number of clusters for kmeans')
+    train_parser.add_argument('--threshold', type=float,
+            help='Cutoff threshold of increase in adjusted R-squared value when'
+            ' adding new predictors to the model')
+    train_parser.add_argument('--nfolds', type=int,
+            help='Number of folds to use in k-fold cross validation.')
+    train_parser.add_argument('--regressor-functions', nargs='*',
+            default=['inv_quadratic', 'inv_linear', 'inv_sqrt', 'sqrt',
+                'linear', 'quadratic', 'log', 'cross', 'div'],
+            help='Regressor functions to use. Options are linear, quadratic, '
+            'sqrt, inv_linear, inv_quadratic, inv_sqrt, log, cross, and div. '
+            'Defaults to all.')
+    train_parser.add_argument('--json', action='store_true', default=False,
+            help='Output model in JSON format, rather than bespoke')
     
-    in_args = main()
-    run(in_args)
+
+    """DUMP CSV ARGUMENTS"""
+    dump_parser.add_argument('database', type=str, help='Name of the database file')
+    dump_parser.add_argument('training_dc', type=str,
+            help='Name of the data collection to dump')
+    dump_parser.add_argument('--metrics', nargs='*',
+            help='Only dump these metrics.')
+    dump_parser.add_argument('--output', type=str, help='Name of file to dump CSV to')
+
+    """TEST ARGUMENTS"""
+    test_parser.add_argument('database', type=str, help='Name of the database file')
+    test_parser.add_argument('experiment_dc', type=str,
+            help='Name of the data collection to experiment on')
+    test_parser.add_argument('model', type=str,
+            help='Name of the model to use')
+    test_parser.add_argument('--show-prediction', action='store_true',
+            default=False,
+            help='If set, send the actual and predicted values to stdout.')
+
+    """PLOT ARGUMENTS"""
+    plot_parser.add_argument('model', type=str,
+            help='Name of the model to use')
+    plot_parser.add_argument('--plot-scree', action='store_true', default=False,
+            help='If set, plots the scree graph from principal component analysis')
+    plot_parser.add_argument('--plot-pcs-per-metric', action='store_true',
+            default=False,
+            help='If set, plots the breakdown of principal components per metric.')
+    plot_parser.add_argument('--plot-metrics-per-pc',
+            action='store_true',
+            default=False,
+            help='If set, plots the breakdown of metrics per principal component.')
+    plot_parser.add_argument('--plot-identifier', type=str, default='NoName',
+            help='Name of the result for plot titles')
+    plot_parser.add_argument('--plot-dump', action='store_true', default=False,
+            help='If set, direct performance plots to files rather than screen.')
+    plot_parser.add_argument('--plot-dir', default=".",
+            help='If set, direct plot files to directory other than cwd.')
+
+    args = parser.parse_args()
+    from pprint import pprint
+    pprint(vars(args))
+    args.func(args)
 
