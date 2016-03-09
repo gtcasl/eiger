@@ -137,26 +137,22 @@ def testModel(args):
     print "Testing the model fit..."
     test_DC = database.DataCollection(args.experiment_dc, args.database)
 
-    # Read in the model file (bespoke version)
-    with open(args.model, 'r') as modelfile:
-        first_char = modelfile.readline()[0]
-    if first_char == '{':
-        model = readFromFileJSON(args.model)
-    else:
-        model = readFromFile(args.model)
+    model = readFile(args.model)
     _runExperiment(model.kmeans, model.means, model.stdevs, model.models,
             model.rotation_matrix, test_DC,
             args, model.metric_names)
 
+def readFile(infile):
+    with open(infile, 'r') as modelfile:
+        first_char = modelfile.readline()[0]
+    if first_char == '{':
+        return readJSONFile(infile)
+    else:
+        return readBespokeFile(infile)
+
 def plotModel(args):
     print "Plotting model..."
-    # Read in the model file (bespoke version)
-    lines = iter(open(args.model,'r').read().splitlines())
-    n_params = int(lines.next())
-    metric_names = [lines.next() for i in range(n_params)]
-    means = _stringToArray(lines.next())
-    stdevs = _stringToArray(lines.next())
-    rotation_matrix = _stringToArray(lines.next())
+    model = readFile(args.model)
     if args.plot_pcs_per_metric:
         PCA.PlotPCsPerMetric(rotation_matrix, metric_names, 
                              title="PCs Per Metric")
@@ -236,7 +232,7 @@ def writeToFileJSON(model, outfile):
     with open(outfile, 'w') as out:
         json.dump(json_root, out, indent=4)
 
-def readFromFileJSON(infile):
+def readJSONFile(infile):
     with open(infile, 'r') as modelfile:
         json_root = json.load(modelfile)
     metric_names = json_root['metric_names']
@@ -274,7 +270,7 @@ def writeToFile(model, outfile):
             modelfile.write('\n') # need a trailing newline
 
 
-def readFromFile(infile):
+def readBespokeFile(infile):
     """Returns a Model namedtuple with all the model parts"""
     with open(infile, 'r') as modelfile:
         lines = iter(modelfile.read().splitlines())
@@ -304,10 +300,10 @@ def convert(args):
     with open(args.input, 'r') as modelfile:
         first_char = modelfile.readline()[0]
     if first_char == '{':
-        model = readFromFileJSON(args.input)
+        model = readJSONFile(args.input)
         writeToFile(model, args.output)
     else:
-        model = readFromFile(args.input)
+        model = readBespokeFile(args.input)
         writeToFileJSON(model, args.output)
 
 if __name__ == "__main__":
