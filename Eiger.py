@@ -19,9 +19,13 @@ import os
 from ast import literal_eval
 import json
 import sys
+from collections import namedtuple
 
 from sklearn.cluster import KMeans
 from eiger import database, PCA, LinearRegression
+
+Model = namedtuple('Model', ['metric_names', 'means', 'stdevs',
+                            'rotation_matrix', 'kmeans', 'models'])
 
 def trainModel(args):
     print "Training the model..."
@@ -62,91 +66,55 @@ def trainModel(args):
     models = [0] * len(clusters)
 
     print "Modeling..."
-    # for printing the json file
-    json_root = {}
-    with tempfile.NamedTemporaryFile(delete=False) as modelfile:
-        # For printing the original model file encoding 
-        modelfile.write("%s\n%s\n" % (len(metric_names), '\n'.join(metric_names)))
-        modelfile.write("[%s](%s)\n" % 
-                (len(means), ','.join([str(mean) for mean in means.tolist()])))
-        modelfile.write("[%s](%s)\n" % 
-                (len(stdevs), ','.join([str(stdev) for stdev in stdevs.tolist()])))
-        modelfile.write("[%s,%s]" % rotation_matrix.shape)
-        modelfile.write("(%s)\n" % 
-                        ','.join(["(%s)" % 
-                            ','.join([str(elem) for elem in row]) 
-                            for row in rotation_matrix.tolist()]))
-        # for printing the json file
-        json_root["metric_names"] = [name for name in metric_names]
-        json_root["means"] = [mean for mean in means.tolist()]
-        json_root["std_devs"] = [stdev for stdev in stdevs.tolist()]
-        json_root["rotation_matrix"] = [[elem for elem in row] for row in rotation_matrix.tolist()]
-        json_root["clusters"] = []
-
-        for i in range(n_clusters):
-            cluster_profile = rotated_training_profile[clusters==i,:]
-            cluster_performance = training_performance[clusters==i]
-            regression = LinearRegression.LinearRegression(cluster_profile,
-                                                           cluster_performance)
-            pool = [LinearRegression.identityFunction()]
-            for col in range(cluster_profile.shape[1]):
-                if('inv_quadratic' in args.regressor_functions):
-                    pool.append(LinearRegression.powerFunction(col, -2))
-                if('inv_linear' in args.regressor_functions):
-                    pool.append(LinearRegression.powerFunction(col, -1))
-                if('inv_sqrt' in args.regressor_functions):
-                    pool.append(LinearRegression.powerFunction(col, -.5))
-                if('sqrt' in args.regressor_functions):
-                    pool.append(LinearRegression.powerFunction(col, .5))
-                if('linear' in args.regressor_functions):
-                    pool.append(LinearRegression.powerFunction(col, 1))
-                if('quadratic' in args.regressor_functions):
-                    pool.append(LinearRegression.powerFunction(col, 2))
-                if('log' in args.regressor_functions):
-                    pool.append(LinearRegression.logFunction(col))
-                if('cross' in args.regressor_functions):
-                    for xcol in range(col, cluster_profile.shape[1]):
-                        pool.append(LinearRegression.crossFunction(col, xcol))
-                if('div' in args.regressor_functions):
-                    for xcol in range(col, cluster_profile.shape[1]):
-                        pool.append(LinearRegression.divFunction(col,xcol))
-                        pool.append(LinearRegression.divFunction(xcol,col))
-            (models[i], r_squared, r_squared_adj) = regression.select(pool, 
-                    threshold=args.threshold,
-                    folds=args.nfolds)
+    for i in range(n_clusters):
+        cluster_profile = rotated_training_profile[clusters==i,:]
+        cluster_performance = training_performance[clusters==i]
+        regression = LinearRegression.LinearRegression(cluster_profile,
+                                                       cluster_performance)
+        pool = [LinearRegression.identityFunction()]
+        for col in range(cluster_profile.shape[1]):
+            if('inv_quadratic' in args.regressor_functions):
+                pool.append(LinearRegression.powerFunction(col, -2))
+            if('inv_linear' in args.regressor_functions):
+                pool.append(LinearRegression.powerFunction(col, -1))
+            if('inv_sqrt' in args.regressor_functions):
+                pool.append(LinearRegression.powerFunction(col, -.5))
+            if('sqrt' in args.regressor_functions):
+                pool.append(LinearRegression.powerFunction(col, .5))
+            if('linear' in args.regressor_functions):
+                pool.append(LinearRegression.powerFunction(col, 1))
+            if('quadratic' in args.regressor_functions):
+                pool.append(LinearRegression.powerFunction(col, 2))
+            if('log' in args.regressor_functions):
+                pool.append(LinearRegression.logFunction(col))
+            if('cross' in args.regressor_functions):
+                for xcol in range(col, cluster_profile.shape[1]):
+                    pool.append(LinearRegression.crossFunction(col, xcol))
+            if('div' in args.regressor_functions):
+                for xcol in range(col, cluster_profile.shape[1]):
+                    pool.append(LinearRegression.divFunction(col,xcol))
+                    pool.append(LinearRegression.divFunction(xcol,col))
+        (models[i], r_squared, r_squared_adj) = regression.select(pool, 
+                threshold=args.threshold,
+                folds=args.nfolds)
             
-            # dump model to original file encoding
-            modelfile.write('Model %s\n' % i)
-            modelfile.write("[%s](%s)\n" % (rotation_matrix.shape[1],
-                                            ','.join([str(center) for center in
-                                                kmeans.cluster_centers_[i].tolist()])))
-            modelfile.write(repr(models[i]))
-            modelfile.write('\n') # need a trailing newline
+        print "Index\tMetric Name"
+        print '\n'.join("%s\t%s" % metric for metric in enumerate(metric_names))
+        print "PCA matrix:"
+        print rotation_matrix 
+        print "Model:\n" + str(models[i])
 
-            # dump model for json encoding
-            json_cluster = {}
-            json_cluster["center"] = [center for center in kmeans.cluster_centers_[i].tolist()]
-            # get models in json format
-            json_cluster["regressors"] = models[i].toJSONObject()
-            json_root["clusters"].append(json_cluster)
-
-            print "Index\tMetric Name"
-            print '\n'.join("%s\t%s" % metric for metric in enumerate(metric_names))
-            print "PCA matrix:"
-            print rotation_matrix 
-            print "Model:\n" + str(models[i])
-
-            print "Finished modeling cluster %s:" % (i,)
-            print "r squared = %s" % (r_squared,)
-            print "adjusted r squared = %s" % (r_squared_adj,)
+        print "Finished modeling cluster %s:" % (i,)
+        print "r squared = %s" % (r_squared,)
+        print "adjusted r squared = %s" % (r_squared_adj,)
        
+    model = Model(metric_names, means, stdevs, rotation_matrix, kmeans, models)
     # if we want to save the model file, copy it now
     outfilename = training_DC.name + '.model' if args.output == None else args.output
     if args.json == True:
-        with open(outfilename, 'w') as outfile:
-            json.dump(json_root, outfile, indent=4)
+        writeToFileJSON(model, outfilename)
     else:
-        shutil.copy(modelfile.name, outfilename)
+        writeToFile(model, outfilename)
     if args.test_fit:
         args.experiment_dc = args.training_dc
         args.model = outfilename
@@ -161,8 +129,8 @@ def dumpCSV(args):
     header = ','.join(names)
     idxs = training_DC.metricIndexByName(names)
     profile = training_DC.profile[:,idxs]
-    output = sys.stdout if args.output == None else args.output
-    np.savetxt(output, profile, delimiter=',', 
+    outfile = sys.stdout if args.output == None else args.output
+    np.savetxt(outfile, profile, delimiter=',', 
             header=header, comments='')
 
 def testModel(args):
@@ -170,28 +138,15 @@ def testModel(args):
     test_DC = database.DataCollection(args.experiment_dc, args.database)
 
     # Read in the model file (bespoke version)
-    lines = iter(open(args.model,'r').read().splitlines())
-    n_params = int(lines.next())
-    metric_names = [lines.next() for i in range(n_params)]
-    means = _stringToArray(lines.next())
-    stdevs = _stringToArray(lines.next())
-    rotation_matrix = _stringToArray(lines.next())
-    models = []
-    centroids = []
-    try:
-        while True:
-            name = lines.next() # kill a line
-            centroids.append(_stringToArray(lines.next()))
-            weights = _stringToArray(lines.next())
-            functions = [LinearRegression.stringToFunction(lines.next()) 
-                         for i in range(weights.shape[0])]
-            models.append(LinearRegression.Model(functions, weights))
-    except StopIteration:
-        pass
-    kmeans = KMeans(len(centroids))
-    kmeans.cluster_centers_ = np.array(centroids)
-    _runExperiment(kmeans, means, stdevs, models, rotation_matrix, test_DC,
-            args, metric_names)
+    with open(args.model, 'r') as modelfile:
+        first_char = modelfile.readline()[0]
+    if first_char == '{':
+        model = readFromFileJSON(args.model)
+    else:
+        model = readFromFile(args.model)
+    _runExperiment(model.kmeans, model.means, model.stdevs, model.models,
+            model.rotation_matrix, test_DC,
+            args, model.metric_names)
 
 def plotModel(args):
     print "Plotting model..."
@@ -264,6 +219,97 @@ def _runExperiment(kmeans, means, stdevs, models, rotation_matrix,
     print "Mean Squared Error: %s" % mse
     print "Root Mean Squared Error: %s" % rmse
 
+def writeToFileJSON(model, outfile):
+    # Let's assume model has all the attributes we care about
+    json_root = {}
+    json_root["metric_names"] = [name for name in model.metric_names]
+    json_root["means"] = [mean for mean in model.means.tolist()]
+    json_root["std_devs"] = [stdev for stdev in model.stdevs.tolist()]
+    json_root["rotation_matrix"] = [[elem for elem in row] for row in model.rotation_matrix.tolist()]
+    json_root["clusters"] = []
+    for i in range(len(model.kmeans.cluster_centers_)):
+        json_cluster = {}
+        json_cluster["center"] = [center for center in model.kmeans.cluster_centers_[i].tolist()]
+        # get models in json format
+        json_cluster["regressors"] = model.models[i].toJSONObject()
+        json_root["clusters"].append(json_cluster)
+    with open(outfile, 'w') as out:
+        json.dump(json_root, out, indent=4)
+
+def readFromFileJSON(infile):
+    with open(infile, 'r') as modelfile:
+        json_root = json.load(modelfile)
+    metric_names = json_root['metric_names']
+    means = np.array(json_root['means'])
+    stdevs = np.array(json_root['std_devs'])
+    rotation_matrix = np.array(json_root['rotation_matrix'])
+    empty_kmeans = KMeans(n_clusters=len(json_root['clusters']), n_init=1)
+    centers = []
+    models = []
+    for cluster in json_root['clusters']:
+        centers.append(np.array(cluster['center']))
+        models.append(LinearRegression.Model.fromJSONObject(cluster['regressors']))
+    kmeans = empty_kmeans.fit(centers)
+    return Model(metric_names, means, stdevs, rotation_matrix, kmeans, models)
+
+def writeToFile(model, outfile):
+    with open(outfile, 'w') as modelfile:
+        # For printing the original model file encoding 
+        modelfile.write("%s\n%s\n" % (len(model.metric_names), '\n'.join(model.metric_names)))
+        modelfile.write("[%s](%s)\n" % 
+                (len(model.means), ','.join([str(mean) for mean in model.means.tolist()])))
+        modelfile.write("[%s](%s)\n" % 
+                (len(model.stdevs), ','.join([str(stdev) for stdev in model.stdevs.tolist()])))
+        modelfile.write("[%s,%s]" % model.rotation_matrix.shape)
+        modelfile.write("(%s)\n" % 
+                        ','.join(["(%s)" % 
+                            ','.join([str(elem) for elem in row]) 
+                            for row in model.rotation_matrix.tolist()]))
+        for i in range(len(model.kmeans.cluster_centers_)):
+            modelfile.write('Model %s\n' % i)
+            modelfile.write("[%s](%s)\n" % (model.rotation_matrix.shape[1],
+                                            ','.join([str(center) for center in
+                                                model.kmeans.cluster_centers_[i].tolist()])))
+            modelfile.write(repr(model.models[i]))
+            modelfile.write('\n') # need a trailing newline
+
+
+def readFromFile(infile):
+    """Returns a Model namedtuple with all the model parts"""
+    with open(infile, 'r') as modelfile:
+        lines = iter(modelfile.read().splitlines())
+    n_params = int(lines.next())
+    metric_names = [lines.next() for i in range(n_params)]
+    means = _stringToArray(lines.next())
+    stdevs = _stringToArray(lines.next())
+    rotation_matrix = _stringToArray(lines.next())
+    models = []
+    centroids = []
+    try:
+        while True:
+            name = lines.next() # kill a line
+            centroids.append(_stringToArray(lines.next()))
+            weights = _stringToArray(lines.next())
+            functions = [LinearRegression.stringToFunction(lines.next()) 
+                         for i in range(weights.shape[0])]
+            models.append(LinearRegression.Model(functions, weights))
+    except StopIteration:
+        pass
+    kmeans = KMeans(len(centroids))
+    kmeans.cluster_centers_ = np.array(centroids)
+    return Model(metric_names, means, stdevs, rotation_matrix, kmeans, models)
+
+def convert(args):
+    print "Converting model..."
+    with open(args.input, 'r') as modelfile:
+        first_char = modelfile.readline()[0]
+    if first_char == '{':
+        model = readFromFileJSON(args.input)
+        writeToFile(model, args.output)
+    else:
+        model = readFromFile(args.input)
+        writeToFileJSON(model, args.output)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = \
             'Command line interface into Eiger performance modeling framework \
@@ -288,9 +334,10 @@ if __name__ == "__main__":
             help='plot the behavior of a model',
             description='Plot the behavior of a model')
     plot_parser.set_defaults(func=plotModel)
-    #convert_parser = subparsers.add_parser('convert',
-    #        help='transform a model into a different file format',
-    #        description='Transform a model into a different file format')
+    convert_parser = subparsers.add_parser('convert',
+            help='transform a model into a different file format',
+            description='Transform a model into a different file format')
+    convert_parser.set_defaults(func=convert)
 
     """TRAINING ARGUMENTS"""
     train_parser.add_argument('database', type=str, help='Name of the database file')
@@ -353,6 +400,12 @@ if __name__ == "__main__":
             action='store_true',
             default=False,
             help='If set, plots the breakdown of metrics per principal component.')
+
+    """CONVERT ARGUMENTS"""
+    convert_parser.add_argument('input', type=str,
+            help='Name of input model to convert from')
+    convert_parser.add_argument('output', type=str,
+            help='Name of output model to convert to')
 
     args = parser.parse_args()
     args.func(args)

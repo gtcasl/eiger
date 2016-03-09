@@ -33,6 +33,22 @@ class Function:
             return 0.0
     def toJSONObject(self):
         return self.json
+    @staticmethod
+    def fromJSONObject(regressor):
+        func = regressor['function']
+        if func == 'identity':
+            return identityFunction()
+        if func == 'power':
+            return powerFunction(regressor['index'], regressor['exponent'])
+        if func == 'product':
+            return crossFunction(regressor['first_idx'], regressor['second_idx'])
+        if func == 'sqrt':
+            return sqrtFunction(regressor['index'])
+        if func == 'log':
+            return logFunction(regressor['index'])
+        if func == 'quotient':
+            return divFunction(regressor['first_idx'], regressor['second_idx'])
+        raise KeyError('Invalid function type in JSON')
 
 class Model:
     """
@@ -72,6 +88,15 @@ class Model:
             regressor["weight"] = weight
             result.append(regressor)
         return result
+    
+    @staticmethod
+    def fromJSONObject(regressors):
+        functions = []
+        weights = []
+        for regressor in regressors:
+            weights.append(regressor['weight'])
+            functions.append(Function.fromJSONObject(regressor))
+        return Model(functions, weights)
 #
 class LinearRegression:
     """
