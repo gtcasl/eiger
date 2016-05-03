@@ -1,6 +1,17 @@
 import numpy as np
 import sqlite3
 
+def getModels(database_name, source_name=None):
+    """Get list of all models in the given database file."""
+
+    conn = sqlite3.connect(database_name)
+    cmd = 'SELECT models.ID, models.description, models.created, model_sources.name FROM models JOIN model_sources ON model_sources.ID = models.source_id'
+    if source_name != None:
+        cmd = cmd + ' WHERE model_sources.name = "' + str(source_name) + '"'
+    cursor = conn.execute(cmd)
+    # The format of the results is [ID, description, created, source_name]
+    return cursor.fetchall()
+
 def getDataCollections(database_name):
     """Get list of data collections in the given database file."""
 

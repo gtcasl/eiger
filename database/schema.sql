@@ -12,6 +12,21 @@ DROP TABLE IF EXISTS machines;
 DROP TABLE IF EXISTS datasets;
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS datacollections;
+DROP TABLE IF EXISTS r_models;
+
+CREATE TABLE model_sources(
+    ID INTEGER PRIMARY KEY,
+    name TEXT
+);
+
+CREATE TABLE models(
+    ID INTEGER PRIMARY KEY,
+    description TEXT,
+    created TEXT,
+    source_id INTEGER REFERENCES model_sources(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    data BLOB
+);
 
 --
 -- Tables to maintain a data collection
