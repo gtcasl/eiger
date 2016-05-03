@@ -12,6 +12,31 @@ def getModels(database_name, source_name=None):
     # The format of the results is [ID, description, created, source_name]
     return cursor.fetchall()
 
+def addModelFromFile(database_name, model_file, source_name, description=''):
+    """Add a model file to DB"""
+
+    conn = sqlite3.connect(database_name)
+    cursor = conn.execute('SELECT ID from model_sources where name = "' + str(source_name) + '"')
+    source_id = cursor.fetchone()
+    if source_id is None:
+        conn.execute('INSERT INTO model_sources(name) VALUES(' + str(source_name) + ')')
+        cursor = conn.execute('SELECT ID from model_sources where name = "' + str(source_name) + '"')
+        source_id = cursor.fetchone()
+    with open(model_file, 'rb') as input_file:
+        ablob = input_file.read()
+        cmd = 'INSERT INTO models(description,source_id,data) VALUES("' + str(description) + '",' + str(source_id[0]) + ',?)'
+        print cmd
+        conn.execute(cmd, [sqlite3.Binary(ablob),])
+        conn.commit()
+
+def dumpModelToFile(database_name, model_file, ID):
+    """Dump model from DB to file"""
+
+    conn = sqlite3.connect(database_name)
+    row = conn.execute('SELECT data FROM models WHERE ID = ' + str(ID)).fetchone()
+    with open(model_file, 'wb') as output_file:
+        output_file.write(row[0])
+
 def getDataCollections(database_name):
     """Get list of data collections in the given database file."""
 

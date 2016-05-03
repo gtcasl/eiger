@@ -16,7 +16,7 @@ DROP TABLE IF EXISTS r_models;
 
 CREATE TABLE model_sources(
     ID INTEGER PRIMARY KEY,
-    name TEXT
+    name TEXT UNIQUE
 );
 
 CREATE TABLE models(

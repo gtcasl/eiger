@@ -29,10 +29,10 @@ Model = namedtuple('Model', ['metric_names', 'means', 'stdevs',
                             'rotation_matrix', 'kmeans', 'models'])
 
 def r_import(args):
-    pass
+    database.addModelFromFile(args.database, args.file, 'R', args.description)
 
 def r_export(args):
-    pass
+    database.dumpModelToFile(args.database, args.file, args.id)
 
 def r_list(args):
     all_models = database.getModels(args.database, 'R')
@@ -430,6 +430,7 @@ if __name__ == "__main__":
     r_import_parser.add_argument('file', type=str,
             help='Name of the model file to import')
     r_import_parser.add_argument('--description', type=str,
+            default='',
             help='String to describe the model')
     """R EXPORT ARGUMENTS"""
     r_export_parser = r_subparser.add_parser('export',
