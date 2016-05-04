@@ -34,10 +34,9 @@ def r_import(args):
 def r_export(args):
     database.dumpModelToFile(args.database, args.file, args.id)
 
-def r_list(args):
-    all_models = database.getModels(args.database, 'R')
-    table = [a[:-1] for a in all_models]
-    print tabulate(table, headers=['ID', 'Description', 'Created'])
+def list_models(args):
+    all_models = database.getModels(args.database)
+    print tabulate(all_models, headers=['ID', 'Description', 'Created', 'Source'])
 
 def trainModel(args):
     print "Training the model..."
@@ -346,6 +345,10 @@ if __name__ == "__main__":
             help='transform a model into a different file format',
             description='Transform a model into a different file format')
     convert_parser.set_defaults(func=convert)
+    list_model_parser = subparsers.add_parser('list',
+            help='list available models in the Eiger DB',
+            description='List available models in the Eiger DB')
+    list_model_parser.set_defaults(func=list_models)
     r_parser = subparsers.add_parser('R',
             help='interact with the R language for modeling',
             description='Interact with the R language for modeling')
@@ -417,6 +420,9 @@ if __name__ == "__main__":
             help='Name of input model to convert from')
     convert_parser.add_argument('output', type=str,
             help='Name of output model to convert to')
+
+    """LIST-MODEL ARGUMENTS"""
+    list_model_parser.add_argument('database', type=str, help='Name of the database file')
     
     """R-MODEL ARGUMENTS"""
     r_subparser = r_parser.add_subparsers(title='subcommands')
@@ -443,12 +449,6 @@ if __name__ == "__main__":
             help='ID number identifying which model in the database to export ')
     r_export_parser.add_argument('file', type=str,
             help='Name of the file to export into')
-    """R LIST ARGUMENTS"""
-    r_list_parser = r_subparser.add_parser('list',
-            help='list available models in the Eiger DB',
-            description='List available models in the Eiger DB')
-    r_list_parser.set_defaults(func=r_list)
-    r_list_parser.add_argument('database', type=str, help='Name of the database file')
 
     args = parser.parse_args()
     args.func(args)
