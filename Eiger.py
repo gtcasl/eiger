@@ -28,10 +28,10 @@ from eiger import database, PCA, LinearRegression
 Model = namedtuple('Model', ['metric_names', 'means', 'stdevs',
                             'rotation_matrix', 'kmeans', 'models'])
 
-def r_import(args):
-    database.addModelFromFile(args.database, args.file, 'R', args.description)
+def import_model(args):
+    database.addModelFromFile(args.database, args.file, args.source_name, args.description)
 
-def r_export(args):
+def export_model(args):
     database.dumpModelToFile(args.database, args.file, args.id)
 
 def list_models(args):
@@ -349,9 +349,14 @@ if __name__ == "__main__":
             help='list available models in the Eiger DB',
             description='List available models in the Eiger DB')
     list_model_parser.set_defaults(func=list_models)
-    r_parser = subparsers.add_parser('R',
-            help='interact with the R language for modeling',
-            description='Interact with the R language for modeling')
+    import_model_parser = subparsers.add_parser('import',
+            help='import model file into the Eiger DB',
+            description='Import model file into the Eiger DB')
+    import_model_parser.set_defaults(func=import_model)
+    export_model_parser = subparsers.add_parser('export',
+            help='export model from Eiger DB to file',
+            description='Export model from Eiger DB to file')
+    export_model_parser.set_defaults(func=export_model)
 
     """TRAINING ARGUMENTS"""
     train_parser.add_argument('database', type=str, help='Name of the database file')
@@ -421,33 +426,25 @@ if __name__ == "__main__":
     convert_parser.add_argument('output', type=str,
             help='Name of output model to convert to')
 
-    """LIST-MODEL ARGUMENTS"""
+    """LIST ARGUMENTS"""
     list_model_parser.add_argument('database', type=str, help='Name of the database file')
     
-    """R-MODEL ARGUMENTS"""
-    r_subparser = r_parser.add_subparsers(title='subcommands')
-    """R IMPORT ARGUMENTS"""
-    r_import_parser = r_subparser.add_parser('import',
-            help='import R model file into the Eiger DB',
-            description='Import R model file into the Eiger DB')
-    r_import_parser.set_defaults(func=r_import)
-    r_import_parser.add_argument('database', type=str,
+    """IMPORT ARGUMENTS"""
+    import_model_parser.add_argument('database', type=str,
             help='Name of the database file')
-    r_import_parser.add_argument('file', type=str,
+    import_model_parser.add_argument('file', type=str,
             help='Name of the model file to import')
-    r_import_parser.add_argument('--description', type=str,
+    import_model_parser.add_argument('source_name', type=str,
+            help='Name of the source of the model (ie Eiger)')
+    import_model_parser.add_argument('--description', type=str,
             default='',
             help='String to describe the model')
-    """R EXPORT ARGUMENTS"""
-    r_export_parser = r_subparser.add_parser('export',
-            help='export R model from Eiger DB to file',
-            description='Export R model from Eiger DB to file')
-    r_export_parser.set_defaults(func=r_export)
-    r_export_parser.add_argument('database', type=str,
+    """EXPORT ARGUMENTS"""
+    export_model_parser.add_argument('database', type=str,
             help='Name of the database file')
-    r_export_parser.add_argument('id', type=int,
+    export_model_parser.add_argument('id', type=int,
             help='ID number identifying which model in the database to export ')
-    r_export_parser.add_argument('file', type=str,
+    export_model_parser.add_argument('file', type=str,
             help='Name of the file to export into')
 
     args = parser.parse_args()

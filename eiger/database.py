@@ -25,7 +25,6 @@ def addModelFromFile(database_name, model_file, source_name, description=''):
     with open(model_file, 'rb') as input_file:
         ablob = input_file.read()
         cmd = 'INSERT INTO models(description,source_id,data) VALUES("' + str(description) + '",' + str(source_id[0]) + ',?)'
-        print cmd
         conn.execute(cmd, [sqlite3.Binary(ablob),])
         conn.commit()
 
