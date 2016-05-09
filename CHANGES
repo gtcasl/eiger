@@ -1,3 +1,14 @@
+Version 4.0
+-----------
+This version changes the command-line interface to Eiger using a series of
+subcommands.  In addition, there is now expanded support for outputting data
+for use in external tools and a way to reintroduce externally-generated models
+into the Eiger database.
+
+There is now a new JSON format for Eiger models. This makes the generated model
+more user-readable. There is functionality to convert inbetween the JSON and
+bespoke versions of models.
+
 Version 3.0
 -----------
 This version is backwards-incompatible with previous releases of Eiger, due to

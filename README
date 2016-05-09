@@ -57,15 +57,7 @@ The API is built using the standard Autotools workflow:
     make
     make install
 
-The configure script can take multiple options, the most important of which are:
-
-    --prefix: Specifies the install directory.
-    --with-mysql-include-path: Location of MySQL headers.
-    --with-mysql-lib-path: Location of MySQL libraries.
-    --with-mysqlpp-include-path: Location of MySQL++ headers.
-    --with-mysqlpp-lib-path: Location of MySQL++ libraries.
-
-Defaults are provided for each. Run ./configure --help for more information.
+Run ./configure --help for more information.
 
 =============
 EXAMPLE DATA
